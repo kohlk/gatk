@@ -51,10 +51,6 @@ public final class CpxVariantInterpreter {
                         .mapToPair(tig -> getOneVariantFromOneContig(tig, referenceSequenceDictionaryBroadcast.getValue()))
                         .groupByKey(); // two contigs could give the same variant
 
-        if (svDiscoveryInputMetaData.getDiscoverStageArgs().outputCpxResultsInHumanReadableFormat) {
-            writeResultsForHumanConsumption(svDiscoveryInputMetaData.getOutputPath(), interpretationAndAssemblyEvidence);
-        }
-
         return interpretationAndAssemblyEvidence.map(pair -> turnIntoVariantContext(pair, referenceBroadcast)).collect();
     }
 
@@ -221,7 +217,7 @@ public final class CpxVariantInterpreter {
      *                     b) when the two alignments' ref span do overlap,
      *                        we makes it so that the inverted duplicated reference span is minimized
      *                        (this avoids over detection of inverted duplications by
-     *                        {@link AssemblyContigAlignmentSignatureClassifier#isCandidateInvertedDuplication(AlignmentInterval, AlignmentInterval)}}
+     *                        {@link SimpleChimera#isCandidateInvertedDuplication()}}
      *                 </li>
      *             </ul>
      *         </li>
@@ -332,28 +328,6 @@ public final class CpxVariantInterpreter {
     }
 
     // =================================================================================================================
-
-    private static void writeResultsForHumanConsumption(final String outputPath,
-                                                        final JavaPairRDD<CpxVariantCanonicalRepresentation, Iterable<CpxVariantInducingAssemblyContig>> interpretationAndAssemblyEvidence) {
-        try {
-            // for easier view when debugging, will be taken out in the final commit.
-            Files.write(Paths.get(Paths.get(outputPath).getParent().toAbsolutePath().toString() + "/cpxEvents.txt"),
-                    () -> interpretationAndAssemblyEvidence
-                            .flatMap(pair -> Utils.stream(pair._2).map( tig -> new Tuple2<>(tig, pair._1)).iterator())
-                            .sortBy(pair  -> pair._1.getPreprocessedTig().getContigName(), true, 1)
-                            .map(pair -> {
-                                final CpxVariantInducingAssemblyContig cpxVariantInducingAssemblyContig = pair._1;
-                                final CpxVariantCanonicalRepresentation cpxVariantCanonicalRepresentation = pair._2;
-                                String s = cpxVariantInducingAssemblyContig.toString() + "\n";
-                                s += cpxVariantCanonicalRepresentation.toString();
-                                s += "\n";
-                                return (CharSequence) s;
-                            })
-                            .collect().iterator());
-        } catch (final IOException ioe) {
-            throw new UserException.CouldNotCreateOutputFile("Could not save filtering results to file", ioe);
-        }
-    }
 
     static final class UnhandledCaseSeen extends GATKException.ShouldNeverReachHereException {
         private static final long serialVersionUID = 0L;
