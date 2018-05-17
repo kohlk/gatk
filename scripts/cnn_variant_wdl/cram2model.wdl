@@ -1,4 +1,109 @@
 # CRAM to filtered VCF WDL
+workflow Cram2TrainedModel {
+    File input_cram
+    File reference_fasta
+    File reference_dict
+    File reference_fasta_index
+    File truth_vcf
+    File truth_vcf_index
+    File truth_bed
+    String output_prefix
+    String tensor_type
+    Int epochs
+    File gatk4_jar
+    File picard_jar
+    File calling_intervals
+    Int scatter_count
+    Int disk_size
+    String extra_args
+
+    call CramToBam {
+        input:
+          reference_fasta = reference_fasta,
+          reference_dict = reference_dict,
+          reference_fasta_index = reference_fasta_index,
+          cram_file = input_cram,
+          output_prefix = output_prefix,
+          disk_size = disk_size
+    }
+
+    call SplitIntervals {
+        input:
+            picard_jar = picard_jar,
+            scatter_count = scatter_count,
+            intervals = calling_intervals
+    }
+
+    scatter (calling_interval in SplitIntervals.interval_files) {
+
+        call RunHC4 {
+            input:
+                input_bam = CramToBam.output_bam,
+                input_bam_index = CramToBam.output_bam_index,
+                reference_fasta = reference_fasta,
+                reference_dict = reference_dict,
+                reference_fasta_index = reference_fasta_index,
+                output_prefix = output_prefix,
+                interval_list = calling_interval,
+                gatk_jar = gatk4_jar,
+                extra_args = extra_args,
+                disk_size = disk_size
+
+        }
+
+        call WriteTensors {
+            input:
+                input_vcf = RunHC4.raw_vcf,
+                input_vcf_index = RunHC4.raw_vcf_index,
+                input_bam = RunHC4.bamout,
+                input_bam_index = RunHC4.bamout_index,
+                truth_vcf = truth_vcf,
+                truth_vcf_index = truth_vcf_index,
+                truth_bed = truth_bed,
+                reference_fasta = reference_fasta,
+                reference_dict = reference_dict,
+                reference_fasta_index = reference_fasta_index,
+                output_prefix = output_prefix,
+                interval_list = calling_interval,
+                gatk_jar = gatk4_jar,
+                disk_size = disk_size,
+                tensor_type = tensor_type
+        }
+    }
+
+    call MergeVCFs as MergeVCF_HC4 {
+        input:
+            input_vcfs = RunHC4.raw_vcf,
+            output_prefix = output_prefix,
+            picard_jar = picard_jar
+    }
+
+    call SamtoolsMergeBAMs {
+        input:
+            input_bams = RunHC4.bamout,
+            output_prefix = output_prefix,
+            picard_jar = picard_jar
+    }
+
+    call TrainModel {
+        input:
+            tar_tensors = WriteTensors.tensors,
+            output_prefix = output_prefix,
+            tensor_type = tensor_type,
+            gatk_jar = gatk4_jar,
+            disk_size = disk_size,
+            epochs = epochs
+    }
+
+
+    output {
+        MergeVCF_HC4.*
+        SamtoolsMergeBAMs.*
+        TrainModel.*
+    }
+
+}
+
 task CramToBam {
   File reference_fasta
   File reference_fasta_index
@@ -232,109 +337,4 @@ task SplitIntervals {
          cpu: "1"
          disks: "local-disk 200 HDD"
     }
-}
-
-workflow Cram2TrainedModel {
-    File input_cram
-    File reference_fasta
-    File reference_dict
-    File reference_fasta_index
-    File truth_vcf
-    File truth_vcf_index
-    File truth_bed
-    String output_prefix
-    String tensor_type
-    Int epochs
-    File gatk4_jar
-    File picard_jar
-    File calling_intervals
-    Int scatter_count
-    Int disk_size
-    String extra_args
-
-    call CramToBam {
-        input:
-          reference_fasta = reference_fasta,
-          reference_dict = reference_dict,
-          reference_fasta_index = reference_fasta_index,
-          cram_file = input_cram,
-          output_prefix = output_prefix,
-          disk_size = disk_size
-    }
-
-    call SplitIntervals {
-        input:
-            picard_jar = picard_jar,
-            scatter_count = scatter_count,
-            intervals = calling_intervals
-    }
-
-    scatter (calling_interval in SplitIntervals.interval_files) {
-
-        call RunHC4 {
-            input:
-                input_bam = CramToBam.output_bam,
-                input_bam_index = CramToBam.output_bam_index,
-                reference_fasta = reference_fasta,
-                reference_dict = reference_dict,
-                reference_fasta_index = reference_fasta_index,
-                output_prefix = output_prefix,
-                interval_list = calling_interval,
-                gatk_jar = gatk4_jar,
-                extra_args = extra_args,
-                disk_size = disk_size
-                
-        }
-
-        call WriteTensors {
-            input:
-                input_vcf = RunHC4.raw_vcf,
-                input_vcf_index = RunHC4.raw_vcf_index,
-                input_bam = RunHC4.bamout,
-                input_bam_index = RunHC4.bamout_index,
-                truth_vcf = truth_vcf,
-                truth_vcf_index = truth_vcf_index,
-                truth_bed = truth_bed,
-                reference_fasta = reference_fasta,
-                reference_dict = reference_dict,
-                reference_fasta_index = reference_fasta_index,               
-                output_prefix = output_prefix,
-                interval_list = calling_interval,
-                gatk_jar = gatk4_jar,
-                disk_size = disk_size,
-                tensor_type = tensor_type
-        }
-    }
-
-    call MergeVCFs as MergeVCF_HC4 {
-        input: 
-            input_vcfs = RunHC4.raw_vcf,
-            output_prefix = output_prefix,
-            picard_jar = picard_jar
-    }
-
-    call SamtoolsMergeBAMs {
-        input:
-            input_bams = RunHC4.bamout,
-            output_prefix = output_prefix,
-            picard_jar = picard_jar
-    }
-
-    call TrainModel {
-        input:
-            tar_tensors = WriteTensors.tensors,
-            output_prefix = output_prefix,
-            tensor_type = tensor_type,
-            gatk_jar = gatk4_jar,
-            disk_size = disk_size,
-            epochs = epochs
-    }    
-
-
-    output {
-        MergeVCF_HC4.*
-        SamtoolsMergeBAMs.*
-        TrainModel.*
-    }
-
 }
