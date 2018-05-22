@@ -95,22 +95,28 @@ workflow Cram2FilteredVcf {
             gatk_docker = gatk_docker
     }
  
-    call MergeBamOuts {
+#    call MergeBamOuts {
+#        input:
+#            bam_outs = RunHC4.bamout,
+#            output_prefix = output_prefix,
+#            ref_fasta = reference_fasta,
+#            ref_dict = reference_dict,
+#            ref_fai = reference_fasta_index,
+#            gatk_override = gatk_override,
+#            preemptible_attempts = preemptible_attempts,
+#            gatk_docker = gatk_docker
+#    }
+
+    call SamtoolsMergeBAMs {
         input:
-            bam_outs = RunHC4.bamout,
-            output_prefix = output_prefix,
-            ref_fasta = reference_fasta,
-            ref_dict = reference_dict,
-            ref_fai = reference_fasta_index,            
-            gatk_override = gatk_override,
-            preemptible_attempts = preemptible_attempts,
-            gatk_docker = gatk_docker                  
+            input_bams = RunHC4.bamout,
+            output_prefix = output_prefix
     }
 
 
     output {
         MergeVCF_HC4.*
-        MergeBamOuts.*
+        SamtoolsMergeBAMs.*
     }
 
 }
@@ -397,9 +403,9 @@ task MergeVCFs {
 task SamtoolsMergeBAMs {
     Array[File] input_bams
     String output_prefix
-    File picard_jar
     command {
-        samtools merge ${output_prefix}_bamout.bam ${sep=' ' input_bams} 
+        samtools merge ${output_prefix}_bamout.bam ${sep=' ' input_bams}
+        samtools index ${output_prefix}_bamout.bam ${output_prefix}_bamout.bai
     }
 
     output {
