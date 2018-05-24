@@ -1,8 +1,8 @@
-# This workflow runs the CNNScoreVariants tool to annotate a VCF with scores from a Neural Net.
+# The CNNScoreVariants tool annotates a VCF with scores from a Neural Net as part of a single-sample workflow.
 # The site-level scores are added to the INFO field of the VCF.
 # The INFO field key will be "1D_CNN" or "2D_CNN" depending on the neural net architecture used for inference.
 # The architecture arguments specify pre-trained networks.
-# The networks can be trained by the GATK tools: CNNVariantWriteTensors and CNNVariantTrain
+# New networks can be trained by the GATK tools: CNNVariantWriteTensors and CNNVariantTrain
 # The bam file and index are only required by 2D CNNs which take a read-level tensor_type such as "read_tensor".
 # For 1D CNNs the tensor_type is typically "reference".
 # Parallelization over sites is controlled by the scatter_count variable.
@@ -22,7 +22,6 @@ workflow CNNScoreVariantsWorkflow {
     Int transfer_batch_size         # Batch size for java transfers to python in CNNScoreVariants
     File? gatk_override
     String gatk_docker
-    File picard_jar
     File calling_intervals
     Int scatter_count 
     Int? preemptible_attempts
@@ -101,7 +100,6 @@ task CNNScoreVariants {
     Int? preemptible_attempts
     Int? disk_space_gb
     Int? cpu 
-    Boolean use_ssd = true
 
     String bam_cl = if defined(bam_file) then "-I ${bam_file}" else " "
 
@@ -137,14 +135,14 @@ command <<<
     #docker: gatk_docker
     docker: "samfriedman/p3"
     memory: machine_mem + " MB"
-    # Note that the space before SSD and HDD should be included.
-    disks: "local-disk " + select_first([disk_space_gb, default_disk_space_gb]) + if use_ssd then " SSD" else " HDD"
+    disks: "local-disk " + select_first([disk_space_gb, default_disk_space_gb]) + " SSD"
     preemptible: select_first([preemptible_attempts, 3])
     cpu: select_first([cpu, 1])  
   }
 
   output {
     File cnn_annotated_vcf = "${output_prefix}_cnn_annotated.vcf.gz"
+    File cnn_annotated_vcf_index = "${output_prefix}_cnn_annotated.vcf.gz.tbi"
   }
 }
 
@@ -165,7 +163,6 @@ task SplitIntervals {
     Int? preemptible_attempts
     Int? disk_space
     Int? cpu
-    Boolean use_ssd = true
 
     # Mem is in units of GB but our command and memory runtime values are in MB
     Int machine_mem = if defined(mem) then mem * 1000 else 3500
@@ -190,7 +187,7 @@ task SplitIntervals {
     runtime {
         docker: gatk_docker
         memory: machine_mem + " MB"
-        disks: "local-disk " + select_first([disk_space, 100]) + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk " + select_first([disk_space, 100]) + " SSD"
         preemptible: select_first([preemptible_attempts, 10])
         cpu: select_first([cpu, 1])
     }
@@ -211,11 +208,10 @@ task MergeVCFs {
     Int? preemptible_attempts
     Int? disk_space_gb
     Int? cpu 
-    Boolean use_ssd = true
 
     # You may have to change the following two parameter values depending on the task requirements
     Int default_ram_mb = 3000
-    # WARNING: In the workflow, you should calculate the disk space as an input to this task (disk_space_gb).  Please see [TODO: Link from Jose] for examples.
+    # For joint-called VCFs the disk space may need to increase, or the VCF can be made sites only before running this tool.
     Int default_disk_space_gb = 100
 
     # Mem is in units of GB but our command and memory runtime values are in MB
@@ -233,8 +229,7 @@ command <<<
   runtime {
     docker: gatk_docker
     memory: machine_mem + " MB"
-    # Note that the space before SSD and HDD should be included.
-    disks: "local-disk " + select_first([disk_space_gb, default_disk_space_gb]) + if use_ssd then " SSD" else " HDD"
+    disks: "local-disk " + select_first([disk_space_gb, default_disk_space_gb]) + " SSD"
     preemptible: select_first([preemptible_attempts, 3])
     cpu: select_first([cpu, 1])  
   }

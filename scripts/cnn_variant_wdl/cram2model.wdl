@@ -10,12 +10,17 @@ workflow Cram2TrainedModel {
     String output_prefix
     String tensor_type
     Int epochs
-    File gatk4_jar
-    File picard_jar
     File calling_intervals
     Int scatter_count
-    Int disk_size
     String extra_args
+
+    # Runtime parameters
+    File? gatk_override
+    String gatk_docker
+    Int? mem_gb
+    Int? preemptible_attempts
+    Int? disk_space_gb
+    Int? cpu
 
     call CramToBam {
         input:
@@ -24,14 +29,18 @@ workflow Cram2TrainedModel {
           reference_fasta_index = reference_fasta_index,
           cram_file = input_cram,
           output_prefix = output_prefix,
-          disk_size = disk_size
+          disk_size = disk_space_gb
     }
 
     call SplitIntervals {
         input:
-            picard_jar = picard_jar,
+            gatk_override = gatk_override,
             scatter_count = scatter_count,
-            intervals = calling_intervals
+            intervals = calling_intervals,
+            ref_fasta = reference_fasta,
+            ref_dict = reference_dict,
+            ref_fai = reference_fasta_index,
+            preemptible_attempts = preemptible_attempts
     }
 
     scatter (calling_interval in SplitIntervals.interval_files) {
@@ -45,10 +54,11 @@ workflow Cram2TrainedModel {
                 reference_fasta_index = reference_fasta_index,
                 output_prefix = output_prefix,
                 interval_list = calling_interval,
-                gatk_jar = gatk4_jar,
+                gatk_docker = gatk_docker,
+                gatk_override = gatk_override,
+                preemptible_attempts = preemptible_attempts,
                 extra_args = extra_args,
-                disk_size = disk_size
-
+                disk_space_gb = disk_space_gb
         }
 
         call WriteTensors {
@@ -65,24 +75,24 @@ workflow Cram2TrainedModel {
                 reference_fasta_index = reference_fasta_index,
                 output_prefix = output_prefix,
                 interval_list = calling_interval,
-                gatk_jar = gatk4_jar,
-                disk_size = disk_size,
+                gatk_jar = gatk_override,
+                disk_size = disk_space_gb,
                 tensor_type = tensor_type
         }
     }
 
-    call MergeVCFs as MergeVCF_HC4 {
+    call MergeVCFs as MergeVCF_CNN {
         input:
             input_vcfs = RunHC4.raw_vcf,
-            output_prefix = output_prefix,
-            picard_jar = picard_jar
+            output_vcf_name = output_prefix,
+            gatk_override = gatk_override,
+            gatk_docker = gatk_docker
     }
 
     call SamtoolsMergeBAMs {
         input:
             input_bams = RunHC4.bamout,
-            output_prefix = output_prefix,
-            picard_jar = picard_jar
+            output_prefix = output_prefix
     }
 
     call TrainModel {
@@ -90,11 +100,10 @@ workflow Cram2TrainedModel {
             tar_tensors = WriteTensors.tensors,
             output_prefix = output_prefix,
             tensor_type = tensor_type,
-            gatk_jar = gatk4_jar,
-            disk_size = disk_size,
+            gatk_jar = gatk_override,
+            disk_size = disk_space_gb,
             epochs = epochs
     }
-
 
     output {
         MergeVCF_HC4.*
@@ -268,37 +277,57 @@ task TrainModel {
 
 
 task MergeVCFs {
+    # inputs
     Array[File] input_vcfs
     String output_prefix
-    File picard_jar
-    command {
-        java -jar ${picard_jar} \
-        MergeVcfs \
-        INPUT=${sep=' INPUT=' input_vcfs} \
-        OUTPUT=${output_prefix}_hc4_merged.vcf.gz
-    }
 
-    output {
-        File output_vcf = "${output_prefix}_hc4_merged.vcf.gz"
+    File? gatk_override
+
+    # runtime
+    String gatk_docker
+    Int? mem
+    Int? preemptible_attempts
+    Int? disk_space
+    Int? cpu
+
+    # Mem is in units of GB but our command and memory runtime values are in MB
+    Int machine_mem = if defined(mem) then mem * 1000 else 3500
+    Int command_mem = machine_mem - 1000
+
+    command {
+        set -e
+        export GATK_LOCAL_JAR=${default="/root/gatk.jar" gatk_override}
+        #gatk --java-options "-Xmx${command_mem}m" MergeVcfs \
+        java "-Xmx${command_mem}m" -jar ${gatk_override} MergeVcfs \
+        -I ${sep=' -I ' input_vcfs} -O "${output_prefix}_cnn_scored.vcf.gz"
     }
 
     runtime {
-        docker: "broadinstitute/genomes-in-the-cloud:2.1.1"
-        memory: "16 GB"
-        disks: "local-disk 400 HDD"
-    } 
+        docker: gatk_docker
+        memory: machine_mem + " MB"
+        disks: "local-disk " + select_first([disk_space, 100]) + " SSD"
+        preemptible: select_first([preemptible_attempts, 10])
+        cpu: select_first([cpu, 1])
+    }
+
+    output {
+        File merged_vcf = "${output_prefix}_hc4.vcf.gz"
+        File merged_vcf_index = "${output_prefix}_hc4.vcf.gz.tbi"
+    }
 }
+
 
 task SamtoolsMergeBAMs {
     Array[File] input_bams
     String output_prefix
-    File picard_jar
     command {
-        samtools merge ${output_prefix}_bamout.bam ${sep=' ' input_bams} 
+        samtools merge ${output_prefix}_bamout.bam ${sep=' ' input_bams}
+        samtools index ${output_prefix}_bamout.bam ${output_prefix}_bamout.bai
     }
 
     output {
         File bamout = "${output_prefix}_bamout.bam"
+        File bamout_index = "${output_prefix}_bamout.bai"
     }
 
   runtime {
@@ -308,33 +337,54 @@ task SamtoolsMergeBAMs {
   }    
 }
 
+
 task SplitIntervals {
-    File picard_jar
+    # inputs
+    File? intervals
+    File ref_fasta
+    File ref_fai
+    File ref_dict
     Int scatter_count
-    File intervals
+    String? split_intervals_extra_args
+
+    File? gatk_override
+
+    # runtime
+    String gatk_docker
+    Int? mem
+    Int? preemptible_attempts
+    Int? disk_space
+    Int? cpu
+
+    # Mem is in units of GB but our command and memory runtime values are in MB
+    Int machine_mem = if defined(mem) then mem * 1000 else 3500
+    Int command_mem = machine_mem - 500
 
     command {
         set -e
-        Picard_Jar=${picard_jar}
+        export GATK_LOCAL_JAR=${default="/root/gatk.jar" gatk_override}
+
         mkdir interval-files
-        java -Xmx6g -jar $Picard_Jar IntervalListTools I=${intervals} O=interval-files SCATTER_COUNT=${scatter_count}
-        find ./interval-files -iname scattered.interval_list | sort > interval-files.txt
-        i=1
-        while read file; 
-        do
-            mv $file $i.interval_list
-            ((i++))
-        done < interval-files.txt
-    }
-    
-    output {
-        Array[File] interval_files = glob("*.interval_list")
+        #gatk --java-options "-Xmx${command_mem}m" SplitIntervals \
+        java "-Xmx${command_mem}m" -jar ${gatk_override} \
+            SplitIntervals \
+            -R ${ref_fasta} \
+            ${"-L " + intervals} \
+            -scatter ${scatter_count} \
+            -O interval-files \
+            ${split_intervals_extra_args}
+        cp interval-files/*.intervals .
     }
 
     runtime {
-         docker: "samfriedman/p3"
-         memory: "3 GB"
-         cpu: "1"
-         disks: "local-disk 200 HDD"
+        docker: gatk_docker
+        memory: machine_mem + " MB"
+        disks: "local-disk " + select_first([disk_space, 100]) + " SSD"
+        preemptible: select_first([preemptible_attempts, 10])
+        cpu: select_first([cpu, 1])
+    }
+
+    output {
+        Array[File] interval_files = glob("*.intervals")
     }
 }

@@ -12,7 +12,6 @@
   "CNNScoreVariantsWorkflow.output_prefix": "g94982_b37_chr20_1m_10m",
   "CNNScoreVariantsWorkflow.preemptible_attempts": "0",
   "CNNScoreVariantsWorkflow.MergeVCF_CNN.preemptible_attempts": "0",
-  "CNNScoreVariantsWorkflow.picard_jar": "gs://broad-dsde-methods/skwalker/picard_2.12.1.jar",
   "CNNScoreVariantsWorkflow.reference_fasta": "gs://broad-references/hg19/v0/Homo_sapiens_assembly19.fasta",
   "CNNScoreVariantsWorkflow.reference_dict": "gs://broad-references/hg19/v0/Homo_sapiens_assembly19.dict",
   "CNNScoreVariantsWorkflow.reference_fasta_index": "gs://broad-references/hg19/v0/Homo_sapiens_assembly19.fasta.fai",
