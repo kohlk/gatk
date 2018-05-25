@@ -29,17 +29,19 @@ workflow Cram2TrainedModel {
           reference_fasta_index = reference_fasta_index,
           cram_file = input_cram,
           output_prefix = output_prefix,
-          disk_size = disk_space_gb
+          disk_space_gb = disk_space_gb,
+          preemptible_attempts = preemptible_attempts
     }
 
     call SplitIntervals {
         input:
-            gatk_override = gatk_override,
             scatter_count = scatter_count,
             intervals = calling_intervals,
             ref_fasta = reference_fasta,
             ref_dict = reference_dict,
             ref_fai = reference_fasta_index,
+            gatk_docker = gatk_docker,
+            gatk_override = gatk_override,
             preemptible_attempts = preemptible_attempts
     }
 
@@ -70,23 +72,28 @@ workflow Cram2TrainedModel {
                 truth_vcf = truth_vcf,
                 truth_vcf_index = truth_vcf_index,
                 truth_bed = truth_bed,
+                tensor_type = tensor_type,
                 reference_fasta = reference_fasta,
                 reference_dict = reference_dict,
                 reference_fasta_index = reference_fasta_index,
                 output_prefix = output_prefix,
                 interval_list = calling_interval,
-                gatk_jar = gatk_override,
-                disk_size = disk_space_gb,
-                tensor_type = tensor_type
+                gatk_docker = gatk_docker,
+                gatk_override = gatk_override,
+                preemptible_attempts = preemptible_attempts,
+                disk_space_gb = disk_space_gb
         }
     }
 
-    call MergeVCFs as MergeVCF_CNN {
+    call MergeVCFs as MergeVCF_HC4 {
         input:
             input_vcfs = RunHC4.raw_vcf,
-            output_vcf_name = output_prefix,
+            output_prefix = output_prefix,
             gatk_override = gatk_override,
-            gatk_docker = gatk_docker
+            gatk_docker = gatk_docker,
+            preemptible_attempts = preemptible_attempts,
+            disk_space = disk_space_gb
+
     }
 
     call SamtoolsMergeBAMs {
@@ -100,8 +107,8 @@ workflow Cram2TrainedModel {
             tar_tensors = WriteTensors.tensors,
             output_prefix = output_prefix,
             tensor_type = tensor_type,
-            gatk_jar = gatk_override,
-            disk_size = disk_space_gb,
+            gatk_override = gatk_override,
+            disk_space_gb = disk_space_gb,
             epochs = epochs
     }
 
@@ -114,13 +121,26 @@ workflow Cram2TrainedModel {
 }
 
 task CramToBam {
-  File reference_fasta
-  File reference_fasta_index
-  File reference_dict
-  File cram_file
-  String output_prefix
+    File reference_fasta
+    File reference_fasta_index
+    File reference_dict
+    File cram_file
+    String output_prefix
 
-  Int disk_size
+    # Runtime parameters
+    Int? mem_gb
+    Int? preemptible_attempts
+    Int? disk_space_gb
+    Int? cpu
+
+    # You may have to change the following two parameter values depending on the task requirements
+    Int default_ram_mb = 16000
+    # WARNING: In the workflow, you should calculate the disk space as an input to this task (disk_space_gb).
+    Int default_disk_space_gb = 200
+
+    # Mem is in units of GB but our command and memory runtime values are in MB
+    Int machine_mem = if defined(mem_gb) then mem_gb *1000 else default_ram_mb
+    Int command_mem = machine_mem - 1000
 
 command <<<
   ls -ltr ${cram_file} ${reference_fasta} &&
@@ -141,9 +161,13 @@ command <<<
   >>>
   runtime {
     docker: "broadinstitute/genomes-in-the-cloud:2.1.1"
-    memory: "3 GB"
-    disks: "local-disk " + disk_size + " HDD"
+    memory: machine_mem + " MB"
+    # Note that the space before SSD and HDD should be included.
+    disks: "local-disk " + select_first([disk_space_gb, default_disk_space_gb]) + " SSD"
+    preemptible: select_first([preemptible_attempts, 3])
+    cpu: select_first([cpu, 1])
   }
+
   output {
     File output_bam = "${output_prefix}.bam"
     File output_bam_index = "${output_prefix}.bai"
@@ -159,12 +183,17 @@ task RunHC4 {
     File reference_fasta_index
     String output_prefix
     File interval_list
-    File gatk_jar
     String extra_args
-    Int disk_size
+    File? gatk_override
 
+    # Runtime parameters
+    Int? mem_gb
+    String gatk_docker
+    Int? preemptible_attempts
+    Int? disk_space_gb
+    Int? cpu
     command { 
-        java -Djava.io.tmpdir=tmp -jar ${gatk_jar} \
+        java -Djava.io.tmpdir=tmp -jar ${gatk_override} \
         HaplotypeCaller \
         -R ${reference_fasta} \
         -I ${input_bam} \
@@ -183,7 +212,7 @@ task RunHC4 {
     runtime {
         docker: "broadinstitute/genomes-in-the-cloud:2.1.1"
         memory: "3 GB"
-        disks: "local-disk " + disk_size + " HDD"
+        disks: "local-disk " + disk_space_gb + " SSD"
     }
 }
 
@@ -201,13 +230,19 @@ task WriteTensors {
     String output_prefix
     String tensor_type
     File interval_list
-    File gatk_jar
-    Int disk_size
+
+    # Runtime parameters
+    File? gatk_override
+    Int? mem_gb
+    String gatk_docker
+    Int? preemptible_attempts
+    Int? disk_space_gb
+    Int? cpu
 
     command {
         mkdir "./tensors/"
 
-        java -Djava.io.tmpdir=tmp -jar ${gatk_jar} \
+        java -Djava.io.tmpdir=tmp -jar ${gatk_override} \
         CNNVariantWriteTensors \
         -R ${reference_fasta} \
         -V ${input_vcf} \
@@ -226,7 +261,7 @@ task WriteTensors {
     runtime {
         docker: "samfriedman/p3"
         memory: "3 GB"
-        disks: "local-disk " + disk_size + " HDD"
+        disks: "local-disk " + disk_space_gb + " SSD"
     }
 
 }
@@ -236,15 +271,21 @@ task TrainModel {
     Array[File] tar_tensors
     String output_prefix
     String tensor_type
-    File gatk_jar
-    Int disk_size
     Int epochs
+
+    # Runtime parameters
+    File? gatk_override
+    Int? mem_gb
+    Int? preemptible_attempts
+    Int? disk_space_gb
+    Int? cpu
+
     command {
         for tensors in ${sep=' ' tar_tensors}  ; do
             tar -xzf $tensors 
         done
 
-        java -Djava.io.tmpdir=tmp -jar ${gatk_jar} \
+        java -Djava.io.tmpdir=tmp -jar ${gatk_override} \
         CNNVariantTrain \
         -input-tensor-dir "./tensors/" \
         -model-name ${output_prefix} \
@@ -263,7 +304,7 @@ task TrainModel {
     runtime {
         docker: "samfriedman/p3"
         memory: "16 GB"
-        disks: "local-disk " + disk_size + " HDD"
+        disks: "local-disk " + disk_space_gb + " HDD"
 
 #      docker: "samfriedman/gpu"
 #      gpuType: "nvidia-tesla-k80" 
@@ -280,7 +321,7 @@ task MergeVCFs {
     # inputs
     Array[File] input_vcfs
     String output_prefix
-
+    String output_vcf = output_prefix + "_hc4.vcf.gz"
     File? gatk_override
 
     # runtime
@@ -299,7 +340,7 @@ task MergeVCFs {
         export GATK_LOCAL_JAR=${default="/root/gatk.jar" gatk_override}
         #gatk --java-options "-Xmx${command_mem}m" MergeVcfs \
         java "-Xmx${command_mem}m" -jar ${gatk_override} MergeVcfs \
-        -I ${sep=' -I ' input_vcfs} -O "${output_prefix}_cnn_scored.vcf.gz"
+        -I ${sep=' -I ' input_vcfs} -O ${output_vcf}
     }
 
     runtime {
@@ -311,8 +352,8 @@ task MergeVCFs {
     }
 
     output {
-        File merged_vcf = "${output_prefix}_hc4.vcf.gz"
-        File merged_vcf_index = "${output_prefix}_hc4.vcf.gz.tbi"
+        File merged_vcf = "${output_vcf}"
+        File merged_vcf_index = "${output_vcf}.tbi"
     }
 }
 
