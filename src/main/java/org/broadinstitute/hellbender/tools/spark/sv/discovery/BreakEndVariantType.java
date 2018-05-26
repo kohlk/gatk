@@ -7,6 +7,7 @@ import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.StrandSwitch;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.NovelAdjacencyAndAltHaplotype;
+import org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.TypeInferredFromSimpleChimera;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVContext;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import scala.Tuple2;
@@ -41,6 +42,24 @@ public abstract class BreakEndVariantType extends SvType {
         return BREAKEND_STR;
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        final BreakEndVariantType that = (BreakEndVariantType) o;
+
+        return isTheUpstreamMate == that.isTheUpstreamMate;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (isTheUpstreamMate ? 1 : 0);
+        return result;
+    }
+
     //==================================================================================================================
 
     private static String getIDString(final NovelAdjacencyAndAltHaplotype narl, final boolean forUpstreamLoc) {
@@ -51,7 +70,7 @@ public abstract class BreakEndVariantType extends SvType {
                 narl.getLeftJustifiedLeftRefLoc().getStart(), narl.getLeftJustifiedRightRefLoc().getContig(),
                 narl.getLeftJustifiedRightRefLoc().getEnd());
         return BREAKEND_STR + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + bndtype + INTERVAL_VARIANT_ID_FIELD_SEPARATOR +
-               locationPartOfString + (forUpstreamLoc ? "1" : "2");
+               locationPartOfString + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + (forUpstreamLoc ? "1" : "2");
     }
 
     private static String getRefBaseString(final NovelAdjacencyAndAltHaplotype narl, final boolean forUpstreamLoc,
@@ -66,7 +85,7 @@ public abstract class BreakEndVariantType extends SvType {
         }
     }
 
-    enum SupportedType {
+    public enum SupportedType {
         INTRA_CHR_STRAND_SWITCH_55,// intra-chromosome strand-switch novel adjacency, alignments left-flanking the novel adjacency
         INTRA_CHR_STRAND_SWITCH_33,// intra-chromosome strand-switch novel adjacency, alignments right-flanking the novel adjacency
 
@@ -104,6 +123,16 @@ public abstract class BreakEndVariantType extends SvType {
                 return forUpstreamLoc ? ins : SequenceUtil.reverseComplement(ins);
             }
         }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
     }
 
     public static final class IntraChromosomalStrandSwitch55BreakEnd extends IntraChromosomalStrandSwitchBreakEnd {
@@ -130,7 +159,17 @@ public abstract class BreakEndVariantType extends SvType {
         }
 
         private static Allele constructAltAllele(final String refBase, final String insertedSequence, final SimpleInterval novelAdjRefLoc) {
-            return Allele.create(refBase + insertedSequence + "]" + novelAdjRefLoc.toString() + "]");
+            return Allele.create(refBase + insertedSequence + "]" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "]");
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
     }
 
@@ -157,9 +196,18 @@ public abstract class BreakEndVariantType extends SvType {
         }
 
         private static Allele constructAltAllele(final String refBase, final String insertedSequence, final SimpleInterval novelAdjRefLoc) {
-            return Allele.create("[" + novelAdjRefLoc.toString() + "[" + insertedSequence + refBase);
+            return Allele.create("[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[" + insertedSequence + refBase);
         }
 
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
     }
 
     public static final class IntraChromosomeRefOrderSwap extends BreakEndVariantType {
@@ -188,10 +236,20 @@ public abstract class BreakEndVariantType extends SvType {
         private static Allele constructAltAllele(final String refBase, final String insertedSequence, final SimpleInterval novelAdjRefLoc,
                                                  final boolean forUpstreamLoc) {
             if (forUpstreamLoc) {
-                return Allele.create(refBase + insertedSequence + "[" + novelAdjRefLoc.toString() + "[");
+                return Allele.create(refBase + insertedSequence + "[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[");
             } else {
                 return Allele.create("]" + novelAdjRefLoc + "]" + insertedSequence + refBase);
             }
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
     }
 
@@ -223,17 +281,19 @@ public abstract class BreakEndVariantType extends SvType {
             final String insertedSequence = extractInsertedSequence(narl, forUpstreamLoc);
             final SimpleInterval novelAdjRefLoc = forUpstreamLoc ? narl.getLeftJustifiedRightRefLoc() : narl.getLeftJustifiedLeftRefLoc();
 
-            final boolean upstreamLocIsFirstInPartner; // see Fig.5 of Section 5.4 of spec Version 4.2 (the green pairs)
+            // see Fig.5 of Section 5.4 of spec Version 4.2 (the green pairs)
+            final boolean upstreamLocIsFirstInPartner =
+                    narl.getTypeInferredFromSimpleChimera().equals(TypeInferredFromSimpleChimera.INTER_CHR_NO_SS_WITH_LEFT_MATE_FIRST_IN_PARTNER);
             if (narl.getStrandSwitch().equals(StrandSwitch.NO_SWITCH)) {
-                if (forUpstreamLoc) {
-                    return Allele.create(refBase + insertedSequence + "[" + novelAdjRefLoc.toString() + "[");
+                if (forUpstreamLoc == upstreamLocIsFirstInPartner) {
+                    return Allele.create(refBase + insertedSequence + "[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[");
                 } else {
                     return Allele.create("]" + novelAdjRefLoc + "]" + insertedSequence + refBase);
                 }
             } else if (narl.getStrandSwitch().equals(StrandSwitch.FORWARD_TO_REVERSE)){
-                return Allele.create(refBase + insertedSequence + "]" + novelAdjRefLoc.toString() + "]");
+                return Allele.create(refBase + insertedSequence + "]" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "]");
             } else {
-                return Allele.create("[" + novelAdjRefLoc.toString() + "[" + insertedSequence + refBase);
+                return Allele.create("[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[" + insertedSequence + refBase);
             }
         }
 
@@ -248,6 +308,16 @@ public abstract class BreakEndVariantType extends SvType {
                     return forUpstreamLoc == (narl.getStrandSwitch().equals(StrandSwitch.FORWARD_TO_REVERSE) ) ? ins: SequenceUtil.reverseComplement(ins);
                 }
             }
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
     }
 }

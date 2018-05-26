@@ -203,9 +203,9 @@ public class SimpleChimera {
     Tuple2<SimpleInterval, SimpleInterval> getCoordinateSortedRefSpans(final SAMSequenceDictionary referenceDictionary) {
 
         if (firstContigRegionRefSpanAfterSecond(referenceDictionary)) {
-            return new Tuple2<>(regionWithLowerCoordOnContig.referenceSpan, regionWithHigherCoordOnContig.referenceSpan);
-        } else {
             return new Tuple2<>(regionWithHigherCoordOnContig.referenceSpan, regionWithLowerCoordOnContig.referenceSpan);
+        } else {
+            return new Tuple2<>(regionWithLowerCoordOnContig.referenceSpan, regionWithHigherCoordOnContig.referenceSpan);
         }
     }
 

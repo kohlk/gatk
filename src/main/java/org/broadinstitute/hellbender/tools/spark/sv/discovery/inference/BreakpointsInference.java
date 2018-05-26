@@ -119,6 +119,7 @@ public abstract class BreakpointsInference {
 
     // TODO: 5/28/18 a bug exists here in location inference that when homology exists, we are implicitly assuming that the hom. seq. has no micro insertion/deletions in its alignments at breakpoints (as we are simply adding/subtracting hom. len.)
     //       this is not a serious problem, unless the net accumulated insertion/deletion length is large (in the range of tens of bp or longer, since that affects overlap-based evaluation)
+    //       similarly, this applies to the duplication cases, where the duplicated copies might not be of exactly the same size
     // =================================================================================================================
 
     /**
@@ -168,12 +169,8 @@ public abstract class BreakpointsInference {
             if( complications.insertedSequenceForwardStrandRep.isEmpty() ) { // simple deletion
                 altHaplotypeSequence = new byte[0]; // simple deletion has no bases available: (POS, END] is gone!
             } else {
-                altHaplotypeSequence = complications.insertedSequenceForwardStrandRep.getBytes();
+                altHaplotypeSequence = complications.insertedSequenceForwardStrandRep.getBytes(); // note that this will lead to, unless specifically removed, inserted sequence annotation for the deletion call extracted from replacement, even when the inserted sequence is long enough to warrant an insertion
             }
-
-            validateInferredLocations(new SimpleInterval(upstreamBreakpointRefContig, upstreamBreakpointRefPos, upstreamBreakpointRefPos),
-                                      new SimpleInterval(downstreamBreakpointRefContig, downstreamBreakpointRefPos, downstreamBreakpointRefPos),
-                                      referenceDictionary, toString());
         }
     }
 
@@ -195,7 +192,7 @@ public abstract class BreakpointsInference {
      * Works for both expansion and contraction.
      * Alt sequence is
      * <ul>
-     *     <li>the left copy if it is contraction</li> todo: see todo above
+     *     <li>empty if it is contraction</li> todo: see todo above
      *     <li>both copies if it is expansion</li> todo: see todo above
      * </ul>
      */
@@ -231,12 +228,7 @@ public abstract class BreakpointsInference {
                 upstreamBreakpointRefPos = leftReferenceInterval.getEnd() - homologyLen;
                 downstreamBreakpointRefPos = rightReferenceInterval.getStart() - 1;
 
-                final int zeroBasedStart = distances.secondAlnCtgStart - 1;
-                final int zeroBasedEnd =  distances.firstAlnCtgEnd;
-                altHaplotypeSequence = Arrays.copyOfRange(contigSequence, zeroBasedStart, zeroBasedEnd);
-                if (!simpleChimera.isForwardStrandRepresentation) {
-                    SequenceUtil.reverseComplement(altHaplotypeSequence);
-                }
+                altHaplotypeSequence = new byte[]{};
             } else {
                 final int expansionUnitDiff = complications.getDupSeqRepeatNumOnCtg()
                         -
@@ -257,6 +249,7 @@ public abstract class BreakpointsInference {
                     cigarForSecondCopyOnCtg = TextCigarCodec.decode(cigarStringsForDupSeqOnCtg.get(0));
                 }
 
+                // TODO: 5/29/18 the small gaps in repeat units will throw this off
                 final int zeroBasedStart = distances.firstAlnCtgEnd - cigarForFirstCopyOnCtg.getReadLength();
                 final int zeroBasedEnd = distances.secondAlnCtgStart + cigarForSecondCopyOnCtg.getReadLength() - 1;
 
@@ -274,7 +267,16 @@ public abstract class BreakpointsInference {
 
     /**
      * Similar to {@link SmallDuplicationWithPreciseDupRangeBreakpointsInference},
-     * except that the cigars are not available as the duplicated region is estimated.
+     * except that
+     * <ul>
+     *     the cigars are not available as the duplicated region is estimated
+     *
+     * </ul>
+     * hence to compensate, alt sequence is
+     * <ul>
+     *     <li>the left copies if it is contraction</li> todo: see todo above
+     *     <li>all copies if it is expansion</li> todo: see todo above
+     * </ul>
      */
     final static class SmallDuplicationWithImpreciseDupRangeBreakpointsInference extends SmallDuplicationBreakpointsInference {
         private SmallDuplicationWithImpreciseDupRangeBreakpointComplications complications;
@@ -365,6 +367,7 @@ public abstract class BreakpointsInference {
                                               final byte[] contigSequence,
                                               final SAMSequenceDictionary referenceDictionary) {
             super(simpleChimera, contigSequence, referenceDictionary);
+            altHaplotypeSequence = new byte[]{};
         }
     }
 
@@ -403,17 +406,8 @@ public abstract class BreakpointsInference {
                 final int homologyLen = complications.getHomologyForwardStrandRep().length();
 
                 final Tuple2<SimpleInterval, SimpleInterval> coordinateSortedRefSpans = simpleChimera.getCoordinateSortedRefSpans(referenceDictionary);
-//                final AlignmentInterval one = simpleChimera.regionWithLowerCoordOnContig,
-//                                        two = simpleChimera.regionWithHigherCoordOnContig;
                 final SimpleInterval leftReferenceInterval  = coordinateSortedRefSpans._1,
                                      rightReferenceInterval = coordinateSortedRefSpans._2;
-//                if (simpleChimera.isForwardStrandRepresentation) {
-//                    leftReferenceInterval  = one.referenceSpan;
-//                    rightReferenceInterval = two.referenceSpan;
-//                } else {
-//                    leftReferenceInterval  = two.referenceSpan;
-//                    rightReferenceInterval = one.referenceSpan;
-//                }
                 if (simpleChimera.strandSwitch == StrandSwitch.FORWARD_TO_REVERSE){
                     upstreamBreakpointRefPos = leftReferenceInterval.getEnd() - homologyLen;
                     downstreamBreakpointRefPos = rightReferenceInterval.getEnd();
@@ -421,12 +415,6 @@ public abstract class BreakpointsInference {
                     upstreamBreakpointRefPos = leftReferenceInterval.getStart();
                     downstreamBreakpointRefPos = rightReferenceInterval.getStart() + homologyLen;
                 }
-            }
-
-            if( complications.insertedSequenceForwardStrandRep.isEmpty() ) {
-                altHaplotypeSequence = new byte[0];
-            } else {
-                altHaplotypeSequence = complications.insertedSequenceForwardStrandRep.getBytes();
             }
 
             validateInferredLocations(new SimpleInterval(upstreamBreakpointRefContig, upstreamBreakpointRefPos, upstreamBreakpointRefPos),
@@ -515,29 +503,14 @@ public abstract class BreakpointsInference {
             super(simpleChimera, contigSequence, referenceDictionary);
 
             final int homologyLen = complications.getHomologyForwardStrandRep().length();
-//            final AlignmentInterval one = simpleChimera.regionWithLowerCoordOnContig,
-//                    two = simpleChimera.regionWithHigherCoordOnContig;
             final Tuple2<SimpleInterval, SimpleInterval> coordinateSortedRefSpans = simpleChimera.getCoordinateSortedRefSpans(referenceDictionary);
             final SimpleInterval leftRefSpan  = coordinateSortedRefSpans._1,
                                  rightRefSpan = coordinateSortedRefSpans._2;
-//            if (simpleChimera.isForwardStrandRepresentation) {
-//                leftRefSpan  = two.referenceSpan;
-//                rightRefSpan = one.referenceSpan;
-//            } else {
-//                leftRefSpan  = one.referenceSpan;
-//                rightRefSpan = two.referenceSpan;
-//            }
             upstreamBreakpointRefContig
                     = downstreamBreakpointRefContig
                     = simpleChimera.regionWithLowerCoordOnContig.referenceSpan.getContig();
             upstreamBreakpointRefPos = leftRefSpan.getStart();
             downstreamBreakpointRefPos = rightRefSpan.getEnd() - homologyLen;
-
-            if( complications.insertedSequenceForwardStrandRep.isEmpty() ) {
-                altHaplotypeSequence = new byte[0];
-            } else {
-                altHaplotypeSequence = complications.insertedSequenceForwardStrandRep.getBytes();
-            }
 
             validateInferredLocations(new SimpleInterval(upstreamBreakpointRefContig, upstreamBreakpointRefPos, upstreamBreakpointRefPos),
                     new SimpleInterval(downstreamBreakpointRefContig, downstreamBreakpointRefPos, downstreamBreakpointRefPos),
@@ -573,12 +546,6 @@ public abstract class BreakpointsInference {
             determineRefContigs(simpleChimera, referenceDictionary);
 
             extractRefPositions(simpleChimera, complications, referenceDictionary);
-
-            if( complications.insertedSequenceForwardStrandRep.isEmpty() ) {
-                altHaplotypeSequence = new byte[0];
-            } else {
-                altHaplotypeSequence = complications.insertedSequenceForwardStrandRep.getBytes();
-            }
 
             validateInferredLocations(new SimpleInterval(upstreamBreakpointRefContig, upstreamBreakpointRefPos, upstreamBreakpointRefPos),
                     new SimpleInterval(downstreamBreakpointRefContig, downstreamBreakpointRefPos, downstreamBreakpointRefPos),

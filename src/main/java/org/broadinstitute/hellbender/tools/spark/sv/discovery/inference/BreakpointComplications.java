@@ -126,7 +126,7 @@ public abstract class BreakpointComplications {
     /**
      * To be overridden as appropriate.
      */
-    public boolean indicatesRefSeqDuplicatedOnAlt() {
+    public boolean hasDuplicationAnnotation() {
         return false;
     }
 
@@ -226,10 +226,10 @@ public abstract class BreakpointComplications {
      * for those, check {@link SmallDuplicationBreakpointComplications}.
      */
     @DefaultSerializer(SimpleInsDelOrReplacementBreakpointComplications.Serializer.class)
-    static final class SimpleInsDelOrReplacementBreakpointComplications extends BreakpointComplications {
+    public static final class SimpleInsDelOrReplacementBreakpointComplications extends BreakpointComplications {
 
         @VisibleForTesting
-        SimpleInsDelOrReplacementBreakpointComplications(final String homologyForwardStrandRep, final String insertedSequenceForwardStrandRep) {
+        public SimpleInsDelOrReplacementBreakpointComplications(final String homologyForwardStrandRep, final String insertedSequenceForwardStrandRep) {
             super(homologyForwardStrandRep, insertedSequenceForwardStrandRep);
         }
 
@@ -342,9 +342,11 @@ public abstract class BreakpointComplications {
             parentAttributesToBeFilled.put(GATKSVVCFConstants.DUP_REPEAT_UNIT_REF_SPAN,
                     getDupSeqRepeatUnitRefSpan().toString());
             parentAttributesToBeFilled.put(GATKSVVCFConstants.DUPLICATION_NUMBERS,
-                    new int[]{getDupSeqRepeatNumOnRef(), getDupSeqRepeatNumOnCtg()});
+                    getDupSeqRepeatNumOnRef() + VCFConstants.INFO_FIELD_ARRAY_SEPARATOR + getDupSeqRepeatNumOnCtg());
             parentAttributesToBeFilled.put(GATKSVVCFConstants.DUP_ORIENTATIONS,
                     getDupSeqOrientationsOnCtg().stream().map(Strand::toString).collect(Collectors.joining()));
+            parentAttributesToBeFilled.put(dupSeqRepeatNumOnRef < dupSeqRepeatNumOnCtg ? GATKSVVCFConstants.DUP_TAN_EXPANSION_STRING : GATKSVVCFConstants.DUP_TAN_CONTRACTION_STRING,
+                    "");
 
             return parentAttributesToBeFilled;
         }
@@ -366,7 +368,7 @@ public abstract class BreakpointComplications {
         }
 
         @Override
-        public final boolean indicatesRefSeqDuplicatedOnAlt() {
+        public final boolean hasDuplicationAnnotation() {
             return true;
         }
 
@@ -1034,7 +1036,7 @@ public abstract class BreakpointComplications {
         }
 
         @Override
-        public boolean indicatesRefSeqDuplicatedOnAlt() {
+        public boolean hasDuplicationAnnotation() {
             return dupSeqRepeatUnitRefSpan != null;
         }
 

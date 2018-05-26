@@ -91,7 +91,7 @@ public class NovelAdjacencyAndAltHaplotype {
     }
 
     public boolean hasDuplicationAnnotation() {
-        return complication.indicatesRefSeqDuplicatedOnAlt();
+        return complication.hasDuplicationAnnotation();
     }
 
     protected NovelAdjacencyAndAltHaplotype(final Kryo kryo, final Input input) {
@@ -186,12 +186,20 @@ public class NovelAdjacencyAndAltHaplotype {
         return complication;
     }
 
-    TypeInferredFromSimpleChimera getType() {
+    public TypeInferredFromSimpleChimera getTypeInferredFromSimpleChimera() {
         return type;
     }
 
     public byte[] getAltHaplotypeSequence() {
         return altHaplotypeSequence;
+    }
+
+    public int getDistanceBetweenNovelAdjacencies() {
+        if (leftJustifiedLeftRefLoc.getContig().equals(leftJustifiedRightRefLoc.getContig())) {
+            return leftJustifiedRightRefLoc.getEnd() - leftJustifiedLeftRefLoc.getStart();
+        } else {
+            return -1;
+        }
     }
 
     /**
@@ -223,7 +231,7 @@ public class NovelAdjacencyAndAltHaplotype {
             }
             case INTRA_CHR_STRAND_SWITCH_55:
             case INTRA_CHR_STRAND_SWITCH_33:
-                if ( complication.indicatesRefSeqDuplicatedOnAlt() ) { // inverted duplication
+                if ( complication.hasDuplicationAnnotation() ) { // inverted duplication
                     final int svLength =
                             ((BreakpointComplications.IntraChrStrandSwitchBreakpointComplications) this.getComplication())
                                     .getDupSeqRepeatUnitRefSpan().size();
@@ -267,7 +275,7 @@ public class NovelAdjacencyAndAltHaplotype {
             }
             case SMALL_DUP_EXPANSION:
             {
-                final int svLength = getLengthForDupTandem(this);
+                final int svLength = getLengthForDupTandem();
                 final BreakpointComplications.SmallDuplicationWithPreciseDupRangeBreakpointComplications duplicationComplication =
                         (BreakpointComplications.SmallDuplicationWithPreciseDupRangeBreakpointComplications) this.getComplication();
                 if (duplicationComplication.getDupSeqRepeatUnitRefSpan().size() < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND) {
@@ -290,7 +298,7 @@ public class NovelAdjacencyAndAltHaplotype {
                     final int svLength = leftJustifiedLeftRefLoc.getEnd() - leftJustifiedRightRefLoc.getStart();
                     return Collections.singletonList( new SimpleSVType.Deletion(this, svLength) );
                 } else {
-                    final int svLength = getLengthForDupTandem(this);
+                    final int svLength = getLengthForDupTandem();
                     if (duplicationComplication.getDupSeqRepeatUnitRefSpan().size() < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND) {
                         return Collections.singletonList( new SimpleSVType.Insertion(this, svLength));
                     } else {
@@ -304,15 +312,30 @@ public class NovelAdjacencyAndAltHaplotype {
     }
 
     /**
-     * Clean expansion of repeat 1 -> 2, or
-     * complex expansion, or
-     * expansion of 1 repeat on ref to 2 repeats on alt with inserted sequence in between the 2 repeats
+     * <ul>
+     *     <li>the new copies' length + inserted sequence length for simple expansion</li>
+     *     <li>for complex expansion: the difference between affected reference region's size and the alt haplotype's length</li>
+     *     <li>-1 otherwise</li>
+     * </ul>
      */
-    public static int getLengthForDupTandem(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype) {
-        final BreakpointComplications.SmallDuplicationBreakpointComplications complication = (BreakpointComplications.SmallDuplicationBreakpointComplications)
-                novelAdjacencyAndAltHaplotype.getComplication();
-        return complication.getInsertedSequenceForwardStrandRep().length()
-                + (complication.getDupSeqRepeatNumOnCtg() - complication.getDupSeqRepeatNumOnRef()) * complication.getDupSeqRepeatUnitRefSpan().size();
+    public int getLengthForDupTandem() {
+        final BreakpointComplications.SmallDuplicationBreakpointComplications dupComplication = (BreakpointComplications.SmallDuplicationBreakpointComplications) getComplication();
+        return dupComplication.getInsertedSequenceForwardStrandRep().length()
+                + (dupComplication.getDupSeqRepeatNumOnCtg() - dupComplication.getDupSeqRepeatNumOnRef()) * dupComplication.getDupSeqRepeatUnitRefSpan().size();
+
+        // TODO: 5/29/18 alternatively, it can be computed in the following way, which actually work better for complex dup expansion, and considering the
+//        if (type.equals(TypeInferredFromSimpleChimera.SMALL_DUP_EXPANSION)) {
+//            final BreakpointComplications.SmallDuplicationBreakpointComplications dupComplication = (BreakpointComplications.SmallDuplicationBreakpointComplications) getComplication();
+//            return dupComplication.getInsertedSequenceForwardStrandRep().length()
+//                    + (dupComplication.getDupSeqRepeatNumOnCtg() - dupComplication.getDupSeqRepeatNumOnRef()) * dupComplication.getDupSeqRepeatUnitRefSpan().size();
+//        } else if (type.equals(TypeInferredFromSimpleChimera.SMALL_DUP_CPX)) {
+//            BreakpointComplications.SmallDuplicationWithImpreciseDupRangeBreakpointComplications complexDupComplication = (BreakpointComplications.SmallDuplicationWithImpreciseDupRangeBreakpointComplications) getComplication();
+//            if (!complexDupComplication.isDupContraction()) {
+//                return getAltHaplotypeSequence().length - complexDupComplication.getImpreciseDupAffectedRefRange().size();
+//            }
+//        }
+//
+//        return -1;
     }
 
     public static final class Serializer extends com.esotericsoftware.kryo.Serializer<NovelAdjacencyAndAltHaplotype> {

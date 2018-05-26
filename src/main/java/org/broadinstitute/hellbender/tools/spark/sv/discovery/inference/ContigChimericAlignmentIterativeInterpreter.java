@@ -85,21 +85,17 @@ public class ContigChimericAlignmentIterativeInterpreter {
                     referenceSequenceDictionaryBroadcast.getValue(), discoverStageArgs, toolLogger);
 
             return narlsAndSources
-                            .mapToPair(noveltyAndEvidence -> new Tuple2<>(noveltyAndEvidence._1,
-                                    new Tuple2<>(inferSimpleTypeFromNovelAdjacency(noveltyAndEvidence._1), noveltyAndEvidence._2)))       // type inference based on novel adjacency and evidence alignments
+                            .mapToPair(noveltyAndEvidence -> new Tuple2<>(inferSimpleTypeFromNovelAdjacency(noveltyAndEvidence._1),       // type inference based on novel adjacency and evidence alignments
+                                    new SimpleNovelAdjacencyAndChimericAlignmentEvidence(noveltyAndEvidence._1, noveltyAndEvidence._2)))
                             .map(noveltyTypeAndEvidence ->
-                            {
-                                final NovelAdjacencyAndAltHaplotype novelAdjacency = noveltyTypeAndEvidence._1;
-                                final SimpleSVType inferredSimpleType = noveltyTypeAndEvidence._2._1;
-                                final Iterable<SimpleChimera> evidence = noveltyTypeAndEvidence._2._2;
-                                return AnnotatedVariantProducer
-                                        .produceAnnotatedVcFromInferredTypeAndRefLocations(
-                                                novelAdjacency, inferredSimpleType, evidence,
+                                    AnnotatedVariantProducer
+                                        .produceAnnotatedVcFromAssemblyEvidence(
+                                                noveltyTypeAndEvidence._1, noveltyTypeAndEvidence._2,
                                                 referenceBroadcast,
                                                 referenceSequenceDictionaryBroadcast,
                                                 cnvCallsBroadcast,
-                                                sampleId);
-                            })
+                                                sampleId).make()
+                            )
                             .collect();
         } finally {
             narlsAndSources.unpersist();
@@ -232,7 +228,7 @@ public class ContigChimericAlignmentIterativeInterpreter {
                         type = new SimpleSVType.Insertion(novelAdjacencyAndAltHaplotype, svLength); // simple insertion (no duplication)
                     }
                 } else {
-                    final int svLength = NovelAdjacencyAndAltHaplotype.getLengthForDupTandem(novelAdjacencyAndAltHaplotype);
+                    final int svLength = novelAdjacencyAndAltHaplotype.getLengthForDupTandem();
                     type = new SimpleSVType.DuplicationTandem(novelAdjacencyAndAltHaplotype, svLength);
                 }
             } else {

@@ -172,14 +172,12 @@ public final class SimpleNovelAdjacencyInterpreter {
                     "\nWe currently only support 1 (symbolic simple or CPX) or 2 (BND mate pairs) variants for producing annotated variants.");
         }
         if ( ! (svTypes.get(0) instanceof BreakEndVariantType) ) { // simple SV type
-            final NovelAdjacencyAndAltHaplotype narl = simpleNovelAdjacencyAndChimericAlignmentEvidence.getNovelAdjacencyReferenceLocations();
-            final List<SimpleChimera> contigEvidence = simpleNovelAdjacencyAndChimericAlignmentEvidence.getAlignmentEvidence();
 
             if ( svTypes.size() == 2 ) { // RPL case with both path >= 50 bp
                 final SvType firstVar = svTypes.get(0);
                 final SvType secondVar = svTypes.get(1);
                 final Tuple2<SvType, SvType> linkedVariants = new Tuple2<>(firstVar, secondVar);
-                return AnnotatedVariantProducer.produceAnnotatedAndLinkedVcFromNovelAdjacency(linkedVariants,
+                return AnnotatedVariantProducer.produceLinkedAssemblyBasedVariants(linkedVariants,
                         simpleNovelAdjacencyAndChimericAlignmentEvidence,
                         referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId,
                         GATKSVVCFConstants.LINK).iterator();
@@ -187,9 +185,9 @@ public final class SimpleNovelAdjacencyInterpreter {
                 final SvType inferredType = svTypes.get(0);
 
                 final VariantContext variantContext = AnnotatedVariantProducer
-                        .produceAnnotatedVcFromInferredTypeAndRefLocations(
-                                narl, inferredType, contigEvidence,
-                                referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId);
+                        .produceAnnotatedVcFromAssemblyEvidence(
+                                inferredType, simpleNovelAdjacencyAndChimericAlignmentEvidence,
+                                referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId).make();
                 return Collections.singletonList(variantContext).iterator();
             }
         } else { // BND mate pair
@@ -197,12 +195,12 @@ public final class SimpleNovelAdjacencyInterpreter {
             final BreakEndVariantType secondMate = (BreakEndVariantType) svTypes.get(1);
 
             final Tuple2<SvType, SvType> bndMates = new Tuple2<>(firstMate, secondMate);
-            final List<VariantContext> variantContexts = AnnotatedVariantProducer
-                    .produceAnnotatedAndLinkedVcFromNovelAdjacency(
+            final List<VariantContext> variantContexts = AnnotatedVariantProducer.produceLinkedAssemblyBasedVariants(
                             bndMates, simpleNovelAdjacencyAndChimericAlignmentEvidence,
                             referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId,
                             GATKSVVCFConstants.BND_MATEID_STR);
             return variantContexts.iterator();
         }
     }
+
 }

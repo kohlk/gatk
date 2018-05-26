@@ -13,6 +13,8 @@ import org.broadinstitute.hellbender.utils.SimpleInterval;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection.STRUCTURAL_VARIANT_SIZE_LOWER_BOUND;
+
 public abstract class SimpleSVType extends SvType {
     public static String createBracketedSymbAlleleString(final String vcfHeaderDefinedSymbAltAllele) {
         return "<" + vcfHeaderDefinedSymbAltAllele + ">";
@@ -20,6 +22,16 @@ public abstract class SimpleSVType extends SvType {
 
     protected SimpleSVType(final String id, final Allele altAllele, final int len, final Map<String, String> typeSpecificExtraAttributes) {
         super(id, altAllele, len, typeSpecificExtraAttributes);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 
     public enum SupportedType {
@@ -55,6 +67,16 @@ public abstract class SimpleSVType extends SvType {
             return (strandSwitch.equals(StrandSwitch.FORWARD_TO_REVERSE) ? GATKSVVCFConstants.INV55 : GATKSVVCFConstants.INV33) + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR +
                     makeLocationPartOfID(novelAdjacencyAndAltHaplotype);
         }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
     }
 
     public static final class Deletion extends SimpleSVType {
@@ -83,6 +105,16 @@ public abstract class SimpleSVType extends SvType {
                     + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
                     + makeLocationPartOfID(novelAdjacencyAndAltHaplotype);
         }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
     }
 
     public static final class Insertion extends SimpleSVType {
@@ -106,9 +138,27 @@ public abstract class SimpleSVType extends SvType {
         }
 
         private static String getIDString(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype) {
+            // to distinguish fat insertion and linked del+ins in an RPL event
+            if (novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getEnd() - novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getStart() < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND)
+                return SupportedType.INS.name() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
+                        + makeLocationPartOfID(novelAdjacencyAndAltHaplotype);
+            else {
+                return SupportedType.INS.name() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
+                        + makeLocationPartOfID(novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getContig(),
+                                                novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getStart(),
+                                                novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getContig(),
+                                                novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getStart());
+            }
+        }
 
-            return SupportedType.INS.name() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
-                    + makeLocationPartOfID(novelAdjacencyAndAltHaplotype);
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
     }
 
@@ -140,6 +190,16 @@ public abstract class SimpleSVType extends SvType {
             return GATKSVVCFConstants.DUP_TAN_EXPANSION_INTERNAL_ID_START_STRING + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
                     + makeLocationPartOfID(dupSeqRepeatUnitRefSpan.getContig(), dupSeqRepeatUnitRefSpan.getStart(),
                     dupSeqRepeatUnitRefSpan.getContig(), dupSeqRepeatUnitRefSpan.getEnd());
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
     }
 
@@ -175,6 +235,16 @@ public abstract class SimpleSVType extends SvType {
                     + evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval().getStart() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
                     + evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval().getEnd();
         }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
     }
 
     public static final class DuplicationInverted extends SimpleSVType {
@@ -195,6 +265,20 @@ public abstract class SimpleSVType extends SvType {
         private static String getIDString(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype) {
             return GATKSVVCFConstants.DUP_INV_INTERNAL_ID_START_STRING + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
                     + makeLocationPartOfID(novelAdjacencyAndAltHaplotype);
+        }
+
+        protected DuplicationInverted(final String id, final Allele altAllele, final int len, final Map<String, String> typeSpecificExtraAttributes) {
+            super(id, altAllele, len, typeSpecificExtraAttributes);
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            return super.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
     }
 

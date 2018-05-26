@@ -33,8 +33,8 @@ public final class SimpleNovelAdjacencyAndChimericAlignmentEvidence {
         return alignmentEvidence;
     }
 
-    SimpleNovelAdjacencyAndChimericAlignmentEvidence(final NovelAdjacencyAndAltHaplotype novelAdjacencyReferenceLocations,
-                                                     final Iterable<SimpleChimera> alignmentEvidence) {
+    public SimpleNovelAdjacencyAndChimericAlignmentEvidence(final NovelAdjacencyAndAltHaplotype novelAdjacencyReferenceLocations,
+                                                            final Iterable<SimpleChimera> alignmentEvidence) {
         this.novelAdjacencyAndAltHaplotype = Utils.nonNull( novelAdjacencyReferenceLocations );
         this.alignmentEvidence = Lists.newArrayList( Utils.nonNull(alignmentEvidence) );
     }

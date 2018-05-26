@@ -42,6 +42,28 @@ public abstract class SvType {
         return extraAttributes;
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        final SvType svType = (SvType) o;
+
+        if (svLen != svType.svLen) return false;
+        if (!variantId.equals(svType.variantId)) return false;
+        if (!altAllele.equals(svType.altAllele)) return false;
+        return extraAttributes.equals(svType.extraAttributes);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = variantId.hashCode();
+        result = 31 * result + altAllele.hashCode();
+        result = 31 * result + svLen;
+        result = 31 * result + extraAttributes.hashCode();
+        return result;
+    }
+
     // TODO: 5/23/18 any better way to do this?
     public static Set<String> getKnownTypes() {
         final SortedSet<String> knownTypes = new TreeSet<>( EnumUtils.getEnumMap(SimpleSVType.SupportedType.class).keySet() );
