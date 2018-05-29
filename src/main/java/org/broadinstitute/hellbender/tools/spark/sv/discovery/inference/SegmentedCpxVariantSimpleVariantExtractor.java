@@ -10,7 +10,6 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.broadcast.Broadcast;
 import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
 import org.broadinstitute.hellbender.exceptions.GATKException;
-import org.broadinstitute.hellbender.tools.spark.sv.discovery.DiscoverVariantsFromContigAlignmentsSAMSpark;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.SimpleSVType;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.SvDiscoverFromLocalAssemblyContigAlignmentsSpark;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.SvDiscoveryInputMetaData;
@@ -209,7 +208,7 @@ public abstract class SegmentedCpxVariantSimpleVariantExtractor implements Seria
                         .map(AssemblyContigWithFineTunedAlignments::getSourceContig);
 
         @SuppressWarnings("deprecation")
-        List<VariantContext> pairIterationReInterpreted = DiscoverVariantsFromContigAlignmentsSAMSpark
+        List<VariantContext> pairIterationReInterpreted = ContigChimericAlignmentIterativeInterpreter
                 .discoverVariantsFromChimeras(svDiscoveryInputMetaData, analysisReadyContigs);
 
         final Broadcast<ReferenceMultiSource> referenceBroadcast = svDiscoveryInputMetaData.getReferenceData().getReferenceBroadcast();

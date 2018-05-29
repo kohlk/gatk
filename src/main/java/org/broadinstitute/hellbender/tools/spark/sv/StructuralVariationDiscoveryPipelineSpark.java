@@ -177,7 +177,7 @@ public class StructuralVariationDiscoveryPipelineSpark extends GATKSparkTool {
         // assembled breakpoints
         @SuppressWarnings("deprecation")
         List<VariantContext> assemblyBasedVariants =
-                org.broadinstitute.hellbender.tools.spark.sv.discovery.DiscoverVariantsFromContigAlignmentsSAMSpark
+                org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.ContigChimericAlignmentIterativeInterpreter
                         .discoverVariantsFromChimeras(svDiscoveryInputMetaData, parsedAlignments);
 
         final List<VariantContext> annotatedVariants = processEvidenceTargetLinks(assemblyBasedVariants, svDiscoveryInputMetaData);
