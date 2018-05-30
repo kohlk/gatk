@@ -1,5 +1,5 @@
 {
-  "HappyWorkflow.vcf_fofn": "gs://broad-dsde-methods/cnn-variant-score/vcfs/vcf_fofn_chm.txt",
+  "HappyWorkflow.vcf_fofn": "gs://broad-dsde-methods/cnn-variant-score/vcfs/vcf_fofn.txt",
   "HappyWorkflow.reference_fasta_index": "gs://broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai",
   "HappyWorkflow.reference_fasta": "gs://broad-references/hg38/v0/Homo_sapiens_assembly38.fasta",
   "HappyWorkflow.reference_dict": "gs://broad-references/hg38/v0/Homo_sapiens_assembly38.dict",
