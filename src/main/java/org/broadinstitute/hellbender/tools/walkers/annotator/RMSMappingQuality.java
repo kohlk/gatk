@@ -42,9 +42,11 @@ import java.util.stream.IntStream;
 @DocumentedFeature(groupName=HelpConstants.DOC_CAT_ANNOTATORS, groupSummary=HelpConstants.DOC_CAT_ANNOTATORS_SUMMARY, summary="Root mean square of the mapping quality of reads across all samples (MQ)")
 public final class RMSMappingQuality extends InfoFieldAnnotation implements StandardAnnotation, ReducibleAnnotation {
     private static final RMSMappingQuality instance = new RMSMappingQuality();
+    public static final int SUM_OF_SQUARES_INDEX = 0;
+    public static final int TOTAL_DEPTH_INDEX = 1;
 
     @Override
-    public String getRawKeyName() { return GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY;}
+    public String getRawKeyName() { return GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY;}
 
     @Override
     public List<String> getKeyNames() {
@@ -74,7 +76,7 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         }
 
         final Map<String, Object> annotations = new HashMap<>();
-        final ReducibleAnnotationData<Number> myData = new ReducibleAnnotationData<>(null);
+        final ReducibleAnnotationData<List<Integer>> myData = new ReducibleAnnotationData<>(null);
         calculateRawData(vc, likelihoods, myData);
         final String annotationString = formattedValue((double) myData.getAttributeMap().get(Allele.NO_CALL));
         annotations.put(getRawKeyName(), annotationString);
@@ -123,7 +125,7 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
     }
 
 
-    public void combineAttributeMap(ReducibleAnnotationData<Double> toAdd, ReducibleAnnotationData<Double> combined) {
+    public void combineAttributeMap(ReducibleAnnotationData<List<Integer>> toAdd, ReducibleAnnotationData<List<Integer>> combined) {
         if (combined.getAttribute(Allele.NO_CALL) != null) {
             combined.putAttribute(Allele.NO_CALL, combined.getAttribute(Allele.NO_CALL) + toAdd.getAttribute(Allele.NO_CALL));
         } else {
@@ -135,14 +137,22 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
     public void calculateRawData(final VariantContext vc,
                                  final ReadLikelihoods<Allele> likelihoods,
                                  final ReducibleAnnotationData rawAnnotations){
-        //put this as a double, like GATK3.5
-        final double squareSum = IntStream.range(0, likelihoods.numberOfSamples()).boxed()
-                .flatMap(s -> likelihoods.sampleReads(s).stream())
-                .map(GATKRead::getMappingQuality)
-                .filter(mq -> mq != QualityUtils.MAPPING_QUALITY_UNAVAILABLE)
-                .mapToDouble(mq -> mq * mq).sum();
+        //GATK3.5 had a double, but change this to an int for the tuple representation
+        int squareSum = 0;
+        int numReadsUsed = 0;
+        if ( !likelihoods.hasFilledLikelihoods() )
+            return;
 
-        rawAnnotations.putAttribute(Allele.NO_CALL, squareSum);
+        for ( int i = 0; i < likelihoods.numberOfSamples(); i++ ) {
+            for ( final GATKRead read : likelihoods.sampleReads(i) ) {
+                int mq = read.getMappingQuality();
+                if ( mq != QualityUtils.MAPPING_QUALITY_UNAVAILABLE ) {
+                    squareSum += mq * mq;
+                    numReadsUsed++;
+                }
+            }
+        }
+        rawAnnotations.putAttribute(Allele.NO_CALL,Arrays.asList(squareSum,numReadsUsed));
     }
 
     @Override
@@ -189,12 +199,11 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         }
     }
 
-    protected void parseRawDataString(ReducibleAnnotationData<Number> myData) {
+    protected void parseRawDataString(ReducibleAnnotationData<List<Integer>> myData) {
         final String rawDataString = myData.getRawData();
         String[] rawMQdataAsStringVector;
         rawMQdataAsStringVector = rawDataString.split(",");
-        double squareSum = Double.parseDouble(rawMQdataAsStringVector[0]);
-        myData.putAttribute(Allele.NO_CALL, squareSum);
+        myData.putAttribute(Allele.NO_CALL, Arrays.asList(Integer.parseInt(rawMQdataAsStringVector[0], Integer.parseInt(rawMQdataAsStringVector[1]))));
     }
 
     //TODO once the AS annotations have been added genotype gvcfs this can be removed for a more generic approach
@@ -223,6 +232,13 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
     @VisibleForTesting
     static int getNumOfReads(final VariantContext vc,
                              final ReadLikelihoods<Allele> likelihoods) {
+        if(vc.hasAttribute(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY)) {
+            List<Integer> MQtuple = vc.getAttributeAsIntList(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY,0);
+            if (MQtuple.get(TOTAL_DEPTH_INDEX) > 0) {
+                return MQtuple.get(TOTAL_DEPTH_INDEX);
+            }
+        }
+
         int numOfReads = 0;
         if (vc.hasAttribute(VCFConstants.DEPTH_KEY)) {
             numOfReads = vc.getAttributeAsInt(VCFConstants.DEPTH_KEY, -1);
