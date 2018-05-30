@@ -6,6 +6,7 @@ import htsjdk.samtools.util.StringUtil;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
+import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.BreakEndVariantType;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.SvType;
@@ -51,6 +52,11 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints ext
         @Override
         public SAMSequenceDictionary getAppropriateDictionary() {
             return TestUtilsForAssemblyBasedSVDiscovery.b37_seqDict;
+        }
+
+        @Override
+        public ReferenceMultiSource getAppropriateRef() {
+            return TestUtilsForAssemblyBasedSVDiscovery.b37_reference;
         }
 
         @Override

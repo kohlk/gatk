@@ -76,14 +76,17 @@ public class AnnotatedVariantProducerUnitTest extends GATKBaseTest {
             data.add(new Object[]{testData.manuallyCuratedSVTypes, new SimpleNovelAdjacencyAndChimericAlignmentEvidence(testData.manuallyCuratedBiPathBubble, Collections.singletonList(testData.manuallyCuratedSimpleChimera)), referenceBroadcast, refSeqDictBroadcast, testSample, BND_MATEID_STR,
                                   testData.manuallyCuratedVariants});
         }
+
+        final Broadcast<ReferenceMultiSource> referenceBroadcast_b38 = testSparkContext.broadcast(TestUtilsForAssemblyBasedSVDiscovery.b38_reference_chr20_chr21);
+        final Broadcast<SAMSequenceDictionary> refSeqDictBroadcast_b38 = testSparkContext.broadcast(TestUtilsForAssemblyBasedSVDiscovery.b38_seqDict_chr20_chr21);
+
         for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera testData : AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants.getAllTestData()) {
-            data.add(new Object[]{testData.manuallyCuratedSVTypes, new SimpleNovelAdjacencyAndChimericAlignmentEvidence(testData.manuallyCuratedBiPathBubble, Collections.singletonList(testData.manuallyCuratedSimpleChimera)), referenceBroadcast, refSeqDictBroadcast, testSample, BND_MATEID_STR,
+            data.add(new Object[]{testData.manuallyCuratedSVTypes, new SimpleNovelAdjacencyAndChimericAlignmentEvidence(testData.manuallyCuratedBiPathBubble, Collections.singletonList(testData.manuallyCuratedSimpleChimera)), referenceBroadcast_b38, refSeqDictBroadcast_b38, testSample, BND_MATEID_STR,
                                   testData.manuallyCuratedVariants});
         }
 
         return data.toArray(new Object[data.size()][]);
     }
-
     @Test(groups = "sv", dataProvider = "forAssemblyBasedAnnotation")
     public void testAssemblyBasedAnnotation(final List<SvType> inferredTypes,
                                             final SimpleNovelAdjacencyAndChimericAlignmentEvidence novelAdjacencyAndAssemblyEvidence,
@@ -163,6 +166,7 @@ public class AnnotatedVariantProducerUnitTest extends GATKBaseTest {
         actual = AnnotatedVariantProducer.produceAnnotatedVcFromAssemblyEvidence(del_21_43350116_43353485, simpleNovelAdjacencyAndChimericAlignmentEvidence, referenceBroadcast, refSeqDictBroadcast, cnvCallsBroadcast, "sample").make();
         VariantContextTestUtils.assertVariantContextsAreEqual(actual, expected, Collections.singletonList(HQ_MAPPINGS));
     }
+
     // -----------------------------------------------------------------------------------------------
     // CI test
     // -----------------------------------------------------------------------------------------------

@@ -230,7 +230,7 @@ public class SimpleChimera {
                 } else if (strandSwitch.equals(StrandSwitch.REVERSE_TO_FORWARD)) {
                     return TypeInferredFromSimpleChimera.INTER_CHR_STRAND_SWITCH_33;
                 } else { // no switch, but still need to distinguish between cases of pair WX vs UV in Fig. 7 in Section 5.4 of VCF spec ver.4.2
-                    if (isForwardStrandRepresentation == firstContigRegionRefSpanAfterSecond(referenceDictionary) ){
+                    if (isForwardStrandRepresentation != firstContigRegionRefSpanAfterSecond(referenceDictionary) ){
                         return TypeInferredFromSimpleChimera.INTER_CHR_NO_SS_WITH_LEFT_MATE_FIRST_IN_PARTNER;
                     } else {
                         return TypeInferredFromSimpleChimera.INTER_CHR_NO_SS_WITH_LEFT_MATE_SECOND_IN_PARTNER;

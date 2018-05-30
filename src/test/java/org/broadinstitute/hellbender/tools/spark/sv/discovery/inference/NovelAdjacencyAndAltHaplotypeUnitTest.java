@@ -3,8 +3,9 @@ package org.broadinstitute.hellbender.tools.spark.sv.discovery.inference;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import htsjdk.samtools.SAMSequenceDictionary;
+import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.SvType;
-import org.broadinstitute.hellbender.tools.spark.sv.discovery.TestUtilsForAssemblyBasedSVDiscovery;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -51,7 +52,9 @@ public class NovelAdjacencyAndAltHaplotypeUnitTest extends AssemblyBasedSVDiscov
 
         for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera assemblyBasedSVDiscoveryTestDataForSimpleChimera : baseDataProvider()) {
             data.add(new Object[]{assemblyBasedSVDiscoveryTestDataForSimpleChimera.manuallyCuratedBiPathBubble,
-                                  assemblyBasedSVDiscoveryTestDataForSimpleChimera.manuallyCuratedSVTypes}
+                                  assemblyBasedSVDiscoveryTestDataForSimpleChimera.manuallyCuratedSVTypes,
+                                  assemblyBasedSVDiscoveryTestDataForSimpleChimera.getAppropriateRef(),
+                                  assemblyBasedSVDiscoveryTestDataForSimpleChimera.getAppropriateDictionary()}
             );
         }
 
@@ -59,9 +62,10 @@ public class NovelAdjacencyAndAltHaplotypeUnitTest extends AssemblyBasedSVDiscov
     }
     @Test(groups = "sv", dataProvider = "forToSimpleOrBNDTypes")
     public void testToSimpleOrBNDTypes(final NovelAdjacencyAndAltHaplotype breakpoints,
-                                       final List<SvType> expectedInferredTypes) {
-
-        final List<SvType> actual = breakpoints.toSimpleOrBNDTypes(TestUtilsForAssemblyBasedSVDiscovery.b37_reference, TestUtilsForAssemblyBasedSVDiscovery.b37_seqDict);
+                                       final List<SvType> expectedInferredTypes,
+                                       final ReferenceMultiSource ref,
+                                       final SAMSequenceDictionary dict) {
+        final List<SvType> actual = breakpoints.toSimpleOrBNDTypes(ref, dict);
         Assert.assertEquals(actual, expectedInferredTypes);
         for (int i = 0; i < actual.size(); ++i) {
             Assert.assertEquals(actual.get(i).hashCode(), expectedInferredTypes.get(i).hashCode());

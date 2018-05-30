@@ -69,7 +69,8 @@ public abstract class BreakEndVariantType extends SvType {
         String locationPartOfString = makeLocationPartOfID(narl.getLeftJustifiedLeftRefLoc().getContig(),
                 narl.getLeftJustifiedLeftRefLoc().getStart(), narl.getLeftJustifiedRightRefLoc().getContig(),
                 narl.getLeftJustifiedRightRefLoc().getEnd());
-        return BREAKEND_STR + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + bndtype + INTERVAL_VARIANT_ID_FIELD_SEPARATOR +
+        return BREAKEND_STR + INTERVAL_VARIANT_ID_FIELD_SEPARATOR +
+                (bndtype.isEmpty() ? "" : bndtype + INTERVAL_VARIANT_ID_FIELD_SEPARATOR) +
                locationPartOfString + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + (forUpstreamLoc ? "1" : "2");
     }
 
@@ -236,9 +237,9 @@ public abstract class BreakEndVariantType extends SvType {
         private static Allele constructAltAllele(final String refBase, final String insertedSequence, final SimpleInterval novelAdjRefLoc,
                                                  final boolean forUpstreamLoc) {
             if (forUpstreamLoc) {
-                return Allele.create(refBase + insertedSequence + "[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[");
+                return Allele.create("]" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "]" + insertedSequence + refBase);
             } else {
-                return Allele.create("]" + novelAdjRefLoc + "]" + insertedSequence + refBase);
+                return Allele.create(refBase + insertedSequence + "[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[");
             }
         }
 
@@ -288,7 +289,7 @@ public abstract class BreakEndVariantType extends SvType {
                 if (forUpstreamLoc == upstreamLocIsFirstInPartner) {
                     return Allele.create(refBase + insertedSequence + "[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[");
                 } else {
-                    return Allele.create("]" + novelAdjRefLoc + "]" + insertedSequence + refBase);
+                    return Allele.create("]" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getStart() + "]" + insertedSequence + refBase);
                 }
             } else if (narl.getStrandSwitch().equals(StrandSwitch.FORWARD_TO_REVERSE)){
                 return Allele.create(refBase + insertedSequence + "]" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "]");

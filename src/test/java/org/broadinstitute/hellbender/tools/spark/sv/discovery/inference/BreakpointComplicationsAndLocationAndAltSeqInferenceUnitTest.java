@@ -211,4 +211,28 @@ public class BreakpointComplicationsAndLocationAndAltSeqInferenceUnitTest extend
         }
     }
 
+    // -----------------------------------------------------------------------------------------------
+    // legacy tests (case covered by other more comprehensive tests, but kept in case others need test data)
+    // -----------------------------------------------------------------------------------------------
+    @Test(groups = "sv", enabled = false)
+    public void testRefOrderSwitch() {
+        AlignmentInterval region1 = new AlignmentInterval(
+                // assigned from chr18 to chr21 to use the dict
+                new SimpleInterval("chr21", 39477098, 39477363),
+                1 ,268,
+                TextCigarCodec.decode("236M2I30M108S"), true, 32, 25, 133, ContigAlignmentsModifier.AlnModType.NONE);
+        AlignmentInterval region2 = new AlignmentInterval(
+                new SimpleInterval("chr21", 39192594, 39192692),
+                252 ,350,
+                TextCigarCodec.decode("251S99M26S"), true, 32, 1, 94, ContigAlignmentsModifier.AlnModType.NONE);
+        SimpleChimera simpleChimera = new SimpleChimera(region1, region2, Collections.emptyList(), "testContig", NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME, TestUtilsForAssemblyBasedSVDiscovery.b38_seqDict_chr20_chr21);
+        NovelAdjacencyAndAltHaplotype breakpoints = new NovelAdjacencyAndAltHaplotype(simpleChimera,
+                "TTCCTTAAAATGCAGGTGAATACAAGAATTAGGTTTCAGGTTTTATATATATATTCTGATATATATATATAATATAACCTGAGATATATATATAAATATATATATTAATATATATTAATATATATAAATATATATATATTAATATATATTTATATATAAATATATATATATTAATATATATAAATATATATAAATATATATATATTAATATATATTAATATATAAATATATATATATTAATATATATTAATATATATAAATATATATATTAATATATATAAATATATATATAAATATATATAAATATATAAATATATATATAAATATATATAAATATATATAAATATATATACACACATACATACACATATACATT".getBytes(),
+                TestUtilsForAssemblyBasedSVDiscovery.b38_seqDict_chr20_chr21);
+        Assert.assertEquals(breakpoints.getLeftJustifiedLeftRefLoc(), new SimpleInterval("chr21", 39192594, 39192594));
+        Assert.assertEquals(breakpoints.getLeftJustifiedRightRefLoc(), new SimpleInterval("chr21", 39477346, 39477346));
+        Assert.assertEquals(breakpoints.getComplication().getHomologyForwardStrandRep(), "ATATATAAATATATATA");
+        Assert.assertTrue(breakpoints.getComplication().getInsertedSequenceForwardStrandRep().isEmpty());
+    }
+
 }

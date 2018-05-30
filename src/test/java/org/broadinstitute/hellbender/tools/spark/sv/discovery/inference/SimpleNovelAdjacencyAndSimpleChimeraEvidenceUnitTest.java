@@ -31,10 +31,10 @@ public class SimpleNovelAdjacencyAndSimpleChimeraEvidenceUnitTest extends Assemb
             final NovelAdjacencyAndAltHaplotype biPathBubble = pair._1.manuallyCuratedBiPathBubble;
             final SimpleChimera forwardRep = new SimpleChimera(pair._1.firstAlignment, pair._1.secondAlignment, Collections.emptyList(),
                     pair._1.evidenceAssemblyContigName, NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME,
-                    TestUtilsForAssemblyBasedSVDiscovery.b37_seqDict);
+                    pair._1.getAppropriateDictionary());
             final SimpleChimera reverseRep = new SimpleChimera(pair._2.firstAlignment, pair._2.secondAlignment, Collections.emptyList(),
                     pair._2.evidenceAssemblyContigName, NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME,
-                    TestUtilsForAssemblyBasedSVDiscovery.b37_seqDict);
+                    pair._2.getAppropriateDictionary());
             final List<SimpleChimera> evidence = Arrays.asList(forwardRep, reverseRep);
             data.add(new Object[]{new SimpleNovelAdjacencyAndChimericAlignmentEvidence(biPathBubble, evidence)});
         }

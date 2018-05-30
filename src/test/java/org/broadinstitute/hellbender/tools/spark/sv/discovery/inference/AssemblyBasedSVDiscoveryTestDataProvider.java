@@ -5,6 +5,7 @@ import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.vcf.VCFConstants;
+import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.BreakEndVariantType;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.SimpleSVType;
@@ -58,6 +59,8 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
         }
 
         abstract public SAMSequenceDictionary getAppropriateDictionary();
+
+        abstract public ReferenceMultiSource getAppropriateRef();
 
         abstract public Class<? extends BreakpointsInference> getAppropriateBreakpointInferencer();
     }
@@ -181,13 +184,13 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
         if (forUpstreamLoc) {
             return new VariantContextBuilder().chr(upstreamLoc.getContig()).start(upstreamLoc.getStart()).stop(upstreamLoc.getEnd())
                     .alleles(Arrays.asList(refAllele, altAllele))
-                    .id(makeID(BREAKEND_STR + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + bndSubtypeString,
+                    .id(makeID(BREAKEND_STR + (bndSubtypeString.isEmpty() ? "" : INTERVAL_VARIANT_ID_FIELD_SEPARATOR + bndSubtypeString),
                             upstreamLoc.getContig(), upstreamLoc.getStart(), dnstreamLoc.getContig(), dnstreamLoc.getEnd(), "1"))
                     .attribute(SVTYPE, BREAKEND_STR);
         } else {
             return new VariantContextBuilder().chr(dnstreamLoc.getContig()).start(dnstreamLoc.getStart()).stop(dnstreamLoc.getEnd())
                     .alleles(Arrays.asList(refAllele, altAllele))
-                    .id(makeID(BREAKEND_STR + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + bndSubtypeString,
+                    .id(makeID(BREAKEND_STR + (bndSubtypeString.isEmpty() ? "" : INTERVAL_VARIANT_ID_FIELD_SEPARATOR + bndSubtypeString),
                             upstreamLoc.getContig(), upstreamLoc.getStart(), dnstreamLoc.getContig(), dnstreamLoc.getEnd(), "2"))
                     .attribute(SVTYPE, BREAKEND_STR);
         }
@@ -205,6 +208,7 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
             case INTER_CHR_STRAND_SWITCH_55:
             case INTER_CHR_STRAND_SWITCH_33:
             case INTER_CHR_NO_SS_WITH_LEFT_MATE_FIRST_IN_PARTNER:
+            case INTER_CHR_NO_SS_WITH_LEFT_MATE_SECOND_IN_PARTNER:
                 return new BreakEndVariantType.InterChromosomeBreakend(id, altAllele, isTheUpstreamMate);
             default:
                 throw new GATKException("Unrecognized type: " + type.name());
