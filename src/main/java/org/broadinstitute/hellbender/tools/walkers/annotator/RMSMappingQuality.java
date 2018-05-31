@@ -78,7 +78,7 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         final Map<String, Object> annotations = new HashMap<>();
         final ReducibleAnnotationData<List<Integer>> myData = new ReducibleAnnotationData<>(null);
         calculateRawData(vc, likelihoods, myData);
-        final String annotationString = formattedValue((double) myData.getAttributeMap().get(Allele.NO_CALL));
+        final String annotationString = makeRawAnnotationString(vc.getAlleles(), myData.getAttributeMap().get(Allele.NO_CALL)));
         annotations.put(getRawKeyName(), annotationString);
         return annotations;
     }
@@ -92,7 +92,6 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         for (final ReducibleAnnotationData currentValue : annotationList) {
             parseRawDataString(currentValue);
             combineAttributeMap(currentValue, combinedData);
-
         }
         final Map<String, Object> annotations = new HashMap<>();
         String annotationString = makeRawAnnotationString(vcAlleles, combinedData.getAttributeMap());
@@ -100,8 +99,8 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         return annotations;
     }
 
-    public String makeRawAnnotationString(final List<Allele> vcAlleles, final Map<Allele, Number> perAlleleData) {
-        return String.format("%.2f", perAlleleData.get(Allele.NO_CALL));
+    public String makeRawAnnotationString(final List<Allele> vcAlleles, final Map<Allele, List<Integer>> perAlleleData) {
+        return String.format("%d,%d", perAlleleData.get(Allele.NO_CALL).get(0), perAlleleData.get(Allele.NO_CALL).get(1));
     }
 
     @Override
@@ -127,7 +126,8 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
 
     public void combineAttributeMap(ReducibleAnnotationData<List<Integer>> toAdd, ReducibleAnnotationData<List<Integer>> combined) {
         if (combined.getAttribute(Allele.NO_CALL) != null) {
-            combined.putAttribute(Allele.NO_CALL, combined.getAttribute(Allele.NO_CALL) + toAdd.getAttribute(Allele.NO_CALL));
+            combined.putAttribute(Allele.NO_CALL, Arrays.asList(combined.getAttribute(Allele.NO_CALL).get(0) + toAdd.getAttribute(Allele.NO_CALL).get(0),
+                    combined.getAttribute(Allele.NO_CALL).get(1) + toAdd.getAttribute(Allele.NO_CALL).get(1)));
         } else {
             combined.putAttribute(Allele.NO_CALL, toAdd.getAttribute(Allele.NO_CALL));
         }
