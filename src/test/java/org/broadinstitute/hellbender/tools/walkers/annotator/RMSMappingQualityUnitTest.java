@@ -9,6 +9,7 @@ import org.broadinstitute.hellbender.engine.ReferenceContext;
 import org.broadinstitute.hellbender.exceptions.UserException;
 import org.broadinstitute.hellbender.tools.walkers.annotator.allelespecific.AS_RMSMappingQuality;
 import org.broadinstitute.hellbender.tools.walkers.annotator.allelespecific.ReducibleAnnotation;
+import org.broadinstitute.hellbender.tools.walkers.annotator.allelespecific.ReducibleAnnotationData;
 import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.genotyper.AlleleList;
@@ -191,6 +192,27 @@ public final class RMSMappingQualityUnitTest {
         Assert.assertEquals(split.length, 2);
         Assert.assertEquals(split[0], String.format("%.2f", 0.0));
         Assert.assertEquals(split[1], String.format("%.2f", 0.0));
+    }
+
+    @Test
+    public void testCombineAndFinalize() {
+        final List<Allele> vcAlleles = Arrays.asList(Allele.create("A", true), Allele.create("T", false));
+        final List<ReducibleAnnotationData<?>> combinedVCdata = new ArrayList<>();
+        combinedVCdata.add(new ReducibleAnnotationData<>("33640,10"));  //10 MQ58 reads
+        combinedVCdata.add(new ReducibleAnnotationData<>("36000,10"));  //10 MQ60 reads
+
+        final RMSMappingQuality annotator = RMSMappingQuality.getInstance();
+
+        final Map<String, Object> combined = annotator.combineRawData(vcAlleles, combinedVCdata);
+        final String combinedListString = (String)combined.get(annotator.getRawKeyName());
+        Assert.assertEquals(combinedListString, "69640,20");
+
+        final VariantContext vc = new VariantContextBuilder(makeVC())
+                .attribute(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY, combinedListString)
+                .make();
+        final VariantContext originalVC = null;
+        final Map<String, Object> output = new RMSMappingQuality().finalizeRawData(vc, originalVC);
+        Assert.assertEquals(Double.parseDouble((String)output.get("MQ")), 59.01);
     }
 
     @Test

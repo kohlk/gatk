@@ -200,10 +200,7 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
     }
 
     protected void parseRawDataString(ReducibleAnnotationData<List<Integer>> myData) {
-        final String rawDataString = myData.getRawData();
-        String[] rawMQdataAsStringVector;
-        rawMQdataAsStringVector = rawDataString.split(",");
-        myData.putAttribute(Allele.NO_CALL, Arrays.asList(Integer.parseInt(rawMQdataAsStringVector[0]), Integer.parseInt(rawMQdataAsStringVector[1])));
+        myData.putAttribute(Allele.NO_CALL, parseRawDataString(myData.getRawData()));
     }
 
     //TODO once the AS annotations have been added genotype gvcfs this can be removed for a more generic approach
