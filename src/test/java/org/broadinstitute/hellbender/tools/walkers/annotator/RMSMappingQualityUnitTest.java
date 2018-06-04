@@ -40,9 +40,9 @@ public final class RMSMappingQualityUnitTest {
         final InfoFieldAnnotation cov = new RMSMappingQuality();
         Assert.assertEquals(cov.getDescriptions().size(), 2);
         Assert.assertEquals(cov.getDescriptions().get(0).getID(), VCFConstants.RMS_MAPPING_QUALITY_KEY);
-        Assert.assertEquals(cov.getDescriptions().get(1).getID(), GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY);
-        Assert.assertEquals(new RMSMappingQuality().getRawKeyName(), GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY);
-        Assert.assertEquals(new RMSMappingQuality().getKeyNames(), Sets.newHashSet(VCFConstants.RMS_MAPPING_QUALITY_KEY, GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY));
+        Assert.assertEquals(cov.getDescriptions().get(1).getID(), GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY);
+        Assert.assertEquals(new RMSMappingQuality().getRawKeyName(), GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY);
+        Assert.assertEquals(new RMSMappingQuality().getKeyNames(), Sets.newHashSet(VCFConstants.RMS_MAPPING_QUALITY_KEY, GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY));
     }
 
     @Test
@@ -54,7 +54,7 @@ public final class RMSMappingQualityUnitTest {
         Assert.assertTrue(annotate.isEmpty());
 
         Assert.assertEquals(cov.getDescriptions().get(0).getID(), VCFConstants.RMS_MAPPING_QUALITY_KEY);
-        Assert.assertEquals(cov.getDescriptions().get(1).getID(), GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY);
+        Assert.assertEquals(cov.getDescriptions().get(1).getID(), GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY);
         Assert.assertEquals(cov.getDescriptions().get(0).getID(), VCFConstants.RMS_MAPPING_QUALITY_KEY);
     }
 
@@ -98,7 +98,7 @@ public final class RMSMappingQualityUnitTest {
         Assert.assertEquals(annotate.size(), 1, "size");
         Assert.assertEquals(annotate.keySet(), Collections.singleton(VCFConstants.RMS_MAPPING_QUALITY_KEY), "annots");
         final double rms= MathUtils.sumOfSquares(MQsListOK); //only those are MQ0
-        Assert.assertNull(annotate.get(GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY));
+        Assert.assertNull(annotate.get(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY));
         Assert.assertEquals(annotate.get(VCFConstants.RMS_MAPPING_QUALITY_KEY), String.format("%.2f", Math.sqrt(rms/(reads.size()-1))));
     }
 
@@ -196,22 +196,22 @@ public final class RMSMappingQualityUnitTest {
     @Test
     public void testFinalizeRawData(){
         final VariantContext vc = new VariantContextBuilder(makeVC())
-                .attribute(GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY, "2000,100,20")
+                .attribute(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY, "43732,13")
                 .attribute(VCFConstants.DEPTH_KEY, 20)
                 .make();
         final VariantContext originalVC = null;
         final Map<String, Object> output = new RMSMappingQuality().finalizeRawData(vc, originalVC);
-        Assert.assertEquals(output.get("MQ"), "10.00");
+        Assert.assertEquals(output.get("MQ"), "58.00");
     }
 
     @Test
     public void testFinalizeRawMQ(){
         final VariantContext vc = new VariantContextBuilder(makeVC())
-                .attribute(GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY, "2000")
+                .attribute(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY, "2000,20")
                 .attribute(VCFConstants.DEPTH_KEY, 20)
                 .make();
         final VariantContext output = new RMSMappingQuality().finalizeRawMQ(vc);
-        Assert.assertFalse(output.hasAttribute( GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY));
+        Assert.assertFalse(output.hasAttribute( GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY));
         Assert.assertTrue(output.hasAttribute(VCFConstants.RMS_MAPPING_QUALITY_KEY));
         Assert.assertEquals(output.getAttributeAsDouble(VCFConstants.RMS_MAPPING_QUALITY_KEY, -1.0), 10.0, 0.01);
     }
@@ -220,31 +220,17 @@ public final class RMSMappingQualityUnitTest {
     @Test(expectedExceptions = UserException.BadInput.class)
     public void testBadRawMQ(){
         final VariantContext vc = new VariantContextBuilder(makeVC())
-                .attribute(GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY, "fiftyeight")
+                .attribute(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY, "fiftyeight")
                 .make();
         new RMSMappingQuality().finalizeRawMQ(vc);
     }
 
-    @Test
-    public void testNoDepth() {
+    @Test(expectedExceptions = UserException.BadInput.class)
+    public void testNoDepth(){
         final VariantContext vc = new VariantContextBuilder(makeVC())
-                .attribute(GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY, "2000")
+                .attribute(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY, "20000")
                 .make();
-        Assert.assertTrue(new RMSMappingQuality().finalizeRawMQ(vc).hasAttribute(VCFConstants.RMS_MAPPING_QUALITY_KEY));
-        Assert.assertTrue(Double.isNaN(new RMSMappingQuality().finalizeRawMQ(vc).getAttributeAsDouble(VCFConstants.RMS_MAPPING_QUALITY_KEY, 0)));
-    }
-
-    @Test
-    //this test mimics the behavior in gatk3, it's not necessarily the right thing to do
-    public void testMultipleRawMQOnlyFirstIsSeen(){
-        final VariantContext vc = new VariantContextBuilder(makeVC())
-                .attribute(GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY, "2000,1000,")
-                .attribute(VCFConstants.DEPTH_KEY, 20)
-                .make();
-        final VariantContext output = new RMSMappingQuality().finalizeRawMQ(vc);
-        Assert.assertFalse(output.hasAttribute( GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY));
-        Assert.assertTrue(output.hasAttribute(VCFConstants.RMS_MAPPING_QUALITY_KEY));
-        Assert.assertEquals(output.getAttributeAsDouble(VCFConstants.RMS_MAPPING_QUALITY_KEY, -1.0), 10.0, 0.01);
+        new RMSMappingQuality().finalizeRawMQ(vc);
     }
 
     @Test
@@ -256,7 +242,7 @@ public final class RMSMappingQualityUnitTest {
                     .make();
         final VariantContext output = new RMSMappingQuality().finalizeRawMQ(vc);
         Assert.assertFalse(output.hasAttribute(VCFConstants.RMS_MAPPING_QUALITY_KEY));
-        Assert.assertFalse(output.hasAttribute(GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY));
+        Assert.assertFalse(output.hasAttribute(GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY));
         Assert.assertEquals(output.getAttribute(OTHER_KEY), VALUE);
     }
 

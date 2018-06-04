@@ -42,11 +42,12 @@ import java.util.stream.IntStream;
 @DocumentedFeature(groupName=HelpConstants.DOC_CAT_ANNOTATORS, groupSummary=HelpConstants.DOC_CAT_ANNOTATORS_SUMMARY, summary="Root mean square of the mapping quality of reads across all samples (MQ)")
 public final class RMSMappingQuality extends InfoFieldAnnotation implements StandardAnnotation, ReducibleAnnotation {
     private static final RMSMappingQuality instance = new RMSMappingQuality();
+    public static final int NUM_LIST_ENTRIES = 2;
     public static final int SUM_OF_SQUARES_INDEX = 0;
     public static final int TOTAL_DEPTH_INDEX = 1;
 
     @Override
-    public String getRawKeyName() { return GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY;}
+    public String getRawKeyName() { return GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY;}   //new key for the two-value MQ data to prevent version mismatch catastrophes
 
     @Override
     public List<String> getKeyNames() {
@@ -78,7 +79,7 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         final Map<String, Object> annotations = new HashMap<>();
         final ReducibleAnnotationData<List<Integer>> myData = new ReducibleAnnotationData<>(null);
         calculateRawData(vc, likelihoods, myData);
-        final String annotationString = makeRawAnnotationString(vc.getAlleles(), myData.getAttributeMap().get(Allele.NO_CALL)));
+        final String annotationString = makeRawAnnotationString(vc.getAlleles(), myData.getAttributeMap());
         annotations.put(getRawKeyName(), annotationString);
         return annotations;
     }
@@ -112,15 +113,15 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         if (rawMQdata == null)
             return new HashMap<>();
 
-        ReducibleAnnotationData myData = new ReducibleAnnotationData(rawMQdata);
+        ReducibleAnnotationData<List<Integer>> myData = new ReducibleAnnotationData(rawMQdata);
         parseRawDataString(myData);
 
-        String annotationString = makeFinalizedAnnotationString(getNumOfReads(vc, null), myData.getAttributeMap());
+        String annotationString = makeFinalizedAnnotationString(myData.getAttribute(Allele.NO_CALL).get(TOTAL_DEPTH_INDEX), myData.getAttribute(Allele.NO_CALL).get(SUM_OF_SQUARES_INDEX));
         return Collections.singletonMap(getKeyNames().get(0), annotationString);
     }
 
-    public String makeFinalizedAnnotationString(final int numOfReads, final Map<Allele, Double> perAlleleData) {
-        return String.format("%.2f", Math.sqrt(perAlleleData.get(Allele.NO_CALL)/numOfReads));
+    public String makeFinalizedAnnotationString(final int numOfReads, final int sumOfSquaredMQs) {
+        return String.format("%.2f", Math.sqrt(sumOfSquaredMQs/(double)numOfReads));
     }
 
 
@@ -165,9 +166,9 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         }
 
         final Map<String, Object> annotations = new HashMap<>();
-        final ReducibleAnnotationData<Double> myData = new ReducibleAnnotationData<>(null);
+        final ReducibleAnnotationData<List<Integer>> myData = new ReducibleAnnotationData<>(null);
         calculateRawData(vc, likelihoods, myData);
-        final String annotationString = makeFinalizedAnnotationString(getNumOfReads(vc, likelihoods), myData.getAttributeMap());
+        final String annotationString = makeFinalizedAnnotationString(myData.getAttribute(Allele.NO_CALL).get(TOTAL_DEPTH_INDEX), myData.getAttribute(Allele.NO_CALL).get(SUM_OF_SQUARES_INDEX));
         annotations.put(getKeyNames().get(0), annotationString);
         return annotations;
     }
@@ -188,9 +189,8 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         if (rawMQdata == null) {
             return vc;
         } else {
-            final double squareSum = parseRawDataString(rawMQdata);
-            final int numOfReads = getNumOfReads(vc, null);
-            final double rms = Math.sqrt(squareSum / (double)numOfReads);
+            final List<Integer> SSQMQandDP = parseRawDataString(rawMQdata);
+            final double rms = Math.sqrt(SSQMQandDP.get(SUM_OF_SQUARES_INDEX) / (double)SSQMQandDP.get(TOTAL_DEPTH_INDEX));
             final String finalizedRMSMAppingQuality = formattedValue(rms);
             return new VariantContextBuilder(vc)
                     .rmAttribute(getRawKeyName())
@@ -203,19 +203,19 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         final String rawDataString = myData.getRawData();
         String[] rawMQdataAsStringVector;
         rawMQdataAsStringVector = rawDataString.split(",");
-        myData.putAttribute(Allele.NO_CALL, Arrays.asList(Integer.parseInt(rawMQdataAsStringVector[0], Integer.parseInt(rawMQdataAsStringVector[1]))));
+        myData.putAttribute(Allele.NO_CALL, Arrays.asList(Integer.parseInt(rawMQdataAsStringVector[0]), Integer.parseInt(rawMQdataAsStringVector[1])));
     }
 
     //TODO once the AS annotations have been added genotype gvcfs this can be removed for a more generic approach
-    private static double parseRawDataString(String rawDataString) {
+    private static List<Integer> parseRawDataString(String rawDataString) {
         try {
-            /*
-             * TODO: this is copied from gatk3 where it ignored all but the first value, we should figure out if this is
-             * the right thing to do or if it should just convert the string without trying to split it and fail if
-             * there is more than one value
-             */
-            final double squareSum = Double.parseDouble(rawDataString.split(",")[0]);
-            return squareSum;
+            final String[] parsed = rawDataString.split(",");
+            if (parsed.length != NUM_LIST_ENTRIES) {
+                throw new UserException.BadInput("Raw value for annotation has " + parsed.length + " values, expected " + NUM_LIST_ENTRIES);
+            }
+            final int squareSum = Integer.parseInt(parsed[SUM_OF_SQUARES_INDEX]);
+            final int totalDP = Integer.parseInt(parsed[TOTAL_DEPTH_INDEX]);
+            return Arrays.asList(squareSum,totalDP);
         } catch (final NumberFormatException e) {
             throw new UserException.BadInput("malformed " + GATKVCFConstants.RAW_RMS_MAPPING_QUALITY_KEY + " annotation: " + rawDataString);
         }
