@@ -23,6 +23,8 @@ import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFHeaderLines;
 import org.testng.Assert;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -473,6 +475,14 @@ public final class VariantContextTestUtils {
             VariantContext expectedReordered = sortAlleles(expected, header);
             assertVariantContextsAreEqual(actualReordered, expectedReordered, attributesToIgnore);
         }
+    }
+
+    public void assertVariantContextsMatch(List<File> inputs, File expected, List<String> extraArgs, String reference) throws IOException {
+        final VCFHeader header = getHeaderFromFile(expected);
+
+        runCombineGVCFSandAssertSomething(inputs, expected, extraArgs, (a, e) -> {
+            VariantContextTestUtils.assertVariantContextsAreEqualAlleleOrderIndependent(a, e, Arrays.asList(), header);
+        }, reference);
     }
 
     /**

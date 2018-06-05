@@ -148,13 +148,7 @@ public class CombineGVCFsIntegrationTest extends CommandLineProgramTest {
 
 
 
-    private void assertVariantContextsMatch(List<File> inputs, File expected, List<String> extraArgs, String reference) throws IOException {
-        final VCFHeader header = getHeaderFromFile(expected);
 
-        runCombineGVCFSandAssertSomething(inputs, expected, extraArgs, (a, e) -> {
-            VariantContextTestUtils.assertVariantContextsAreEqualAlleleOrderIndependent(a, e, Arrays.asList(), header);
-        }, reference);
-    }
 
     public void runCombineGVCFSandAssertSomething(List<File> inputs, File expected, List<String> additionalArguments, BiConsumer<VariantContext, VariantContext> assertion, String reference) throws IOException {
         final File output = createTempFile("combinegvcfs", ".vcf");
