@@ -477,14 +477,6 @@ public final class VariantContextTestUtils {
         }
     }
 
-    public void assertVariantContextsMatch(List<File> inputs, File expected, List<String> extraArgs, String reference) throws IOException {
-        final VCFHeader header = getHeaderFromFile(expected);
-
-        runCombineGVCFSandAssertSomething(inputs, expected, extraArgs, (a, e) -> {
-            VariantContextTestUtils.assertVariantContextsAreEqualAlleleOrderIndependent(a, e, Arrays.asList(), header);
-        }, reference);
-    }
-
     /**
      * Method which returns a complete header with all the GATK and HTSJDK standard header lines for testing purposes
      *

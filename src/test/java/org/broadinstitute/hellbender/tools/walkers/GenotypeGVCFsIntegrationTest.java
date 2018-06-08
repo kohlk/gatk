@@ -54,7 +54,7 @@ public class GenotypeGVCFsIntegrationTest extends CommandLineProgramTest {
             "AS_QD",
             "QD",//TODO QD and AS_QD have cap values and anything that reaches that is randomized.  It's difficult to reproduce the same random numbers across gatk3 -> 4
             "FS",//TODO There's some bug in either gatk3 or gatk4 fisherstrand that's making them not agree still, I'm not sure which is correct
-            "RAW_MQ"); //MQ data format and key have changed since GATK3
+            "RAW_MQ", "MQ"); //MQ data format and key have changed since GATK3
 
     private static final String ALLELE_SPECIFIC_DIRECTORY = toolsTestDir + "walkers/annotator/allelespecific";
 
