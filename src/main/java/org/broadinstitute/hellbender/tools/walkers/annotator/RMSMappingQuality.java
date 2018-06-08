@@ -141,15 +141,14 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         //GATK3.5 had a double, but change this to an int for the tuple representation
         int squareSum = 0;
         int numReadsUsed = 0;
-        if ( !likelihoods.hasFilledLikelihoods() )
-            return;
-
-        for ( int i = 0; i < likelihoods.numberOfSamples(); i++ ) {
-            for ( final GATKRead read : likelihoods.sampleReads(i) ) {
-                int mq = read.getMappingQuality();
-                if ( mq != QualityUtils.MAPPING_QUALITY_UNAVAILABLE ) {
-                    squareSum += mq * mq;
-                    numReadsUsed++;
+        if ( !likelihoods.hasFilledLikelihoods()) {
+            for (int i = 0; i < likelihoods.numberOfSamples(); i++) {
+                for (final GATKRead read : likelihoods.sampleReads(i)) {
+                    int mq = read.getMappingQuality();
+                    if (mq != QualityUtils.MAPPING_QUALITY_UNAVAILABLE) {
+                        squareSum += mq * mq;
+                        numReadsUsed++;
+                    }
                 }
             }
         }
