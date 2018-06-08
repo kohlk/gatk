@@ -38,10 +38,11 @@ public final class RMSMappingQualityUnitTest {
 
     @Test
     public void testDescriptions() throws Exception {
-        final InfoFieldAnnotation cov = new RMSMappingQuality();
-        Assert.assertEquals(cov.getDescriptions().size(), 2);
+        final RMSMappingQuality cov = new RMSMappingQuality();
+        Assert.assertEquals(cov.getDescriptions().size(), 1);
         Assert.assertEquals(cov.getDescriptions().get(0).getID(), VCFConstants.RMS_MAPPING_QUALITY_KEY);
-        Assert.assertEquals(cov.getDescriptions().get(1).getID(), GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY);
+        Assert.assertEquals(cov.getRawDescriptions().size(), 1);
+        Assert.assertEquals(cov.getRawDescriptions().get(0).getID(), GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY);
         Assert.assertEquals(new RMSMappingQuality().getRawKeyName(), GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY);
         Assert.assertEquals(new RMSMappingQuality().getKeyNames(), Sets.newHashSet(VCFConstants.RMS_MAPPING_QUALITY_KEY, GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY));
     }
@@ -50,13 +51,12 @@ public final class RMSMappingQualityUnitTest {
     public void testNullLikelihoods() throws Exception {
         final VariantContext vc= makeVC();
         final ReferenceContext referenceContext= null;
-        final InfoFieldAnnotation cov = new RMSMappingQuality();
+        final RMSMappingQuality cov = new RMSMappingQuality();
         final Map<String, Object> annotate = cov.annotate(referenceContext, vc, null);
         Assert.assertTrue(annotate.isEmpty());
 
         Assert.assertEquals(cov.getDescriptions().get(0).getID(), VCFConstants.RMS_MAPPING_QUALITY_KEY);
-        Assert.assertEquals(cov.getDescriptions().get(1).getID(), GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY);
-        Assert.assertEquals(cov.getDescriptions().get(0).getID(), VCFConstants.RMS_MAPPING_QUALITY_KEY);
+        Assert.assertEquals(cov.getRawDescriptions().get(0).getID(), GATKVCFConstants.RAW_MAPPING_QUALITY_WITH_DEPTH_KEY);
     }
 
     /**

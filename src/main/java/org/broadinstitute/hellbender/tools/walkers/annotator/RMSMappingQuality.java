@@ -141,7 +141,7 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
         //GATK3.5 had a double, but change this to an int for the tuple representation
         int squareSum = 0;
         int numReadsUsed = 0;
-        if ( !likelihoods.hasFilledLikelihoods()) {
+        if ( likelihoods.hasFilledLikelihoods()) {
             for (int i = 0; i < likelihoods.numberOfSamples(); i++) {
                 for (final GATKRead read : likelihoods.sampleReads(i)) {
                     int mq = read.getMappingQuality();
@@ -178,9 +178,9 @@ public final class RMSMappingQuality extends InfoFieldAnnotation implements Stan
     }
 
     /**
-     * converts {@link GATKVCFConstants#RAW_RMS_MAPPING_QUALITY_KEY} into  {@link VCFConstants#RMS_MAPPING_QUALITY_KEY}  annotation if present
+     * converts {@link GATKVCFConstants#RAW_MAPPING_QUALITY_WITH_DEPTH_KEY} into  {@link VCFConstants#RMS_MAPPING_QUALITY_KEY}  annotation if present
      * @param vc which potentially contains rawMQ
-     * @return if vc contained {@link GATKVCFConstants#RAW_RMS_MAPPING_QUALITY_KEY} it will be replaced with {@link VCFConstants#RMS_MAPPING_QUALITY_KEY}
+     * @return if vc contained {@link GATKVCFConstants#RAW_MAPPING_QUALITY_WITH_DEPTH_KEY} it will be replaced with {@link VCFConstants#RMS_MAPPING_QUALITY_KEY}
      * otherwise return the original vc
      */
     public VariantContext finalizeRawMQ(final VariantContext vc) {
