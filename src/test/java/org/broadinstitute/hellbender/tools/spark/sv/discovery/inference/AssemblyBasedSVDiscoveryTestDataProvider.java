@@ -12,13 +12,21 @@ import org.broadinstitute.hellbender.tools.spark.sv.discovery.SimpleSVType;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.SvType;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.AlignmentInterval;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
+import scala.Tuple2;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import static org.broadinstitute.hellbender.tools.spark.sv.utils.GATKSVVCFConstants.*;
 
+/**
+ * Holding utility methods used for constructing test data
+ * as well as expected results.
+ *
+ * NO TESTS ARE RUN IN THIS PARTICULAR CLASS AND ITS CHILD CLASSES.
+ */
 public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
 
     public abstract static class AssemblyBasedSVDiscoveryTestDataForSimpleChimera {
@@ -30,32 +38,32 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
 
         // these are used for testing
         public final boolean expectedFirstContigRegionHasLaterReferenceMapping;
-        public final SimpleChimera manuallyCuratedSimpleChimera;
-        public final NovelAdjacencyAndAltHaplotype manuallyCuratedBiPathBubble;
+        public final SimpleChimera expectedSimpleChimera;
+        public final NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltSeq;
 
-        public final List<SvType> manuallyCuratedSVTypes;
-        public final List<VariantContext> manuallyCuratedVariants;
+        public final List<SvType> expectedSvTypes;
+        public final List<VariantContext> expectedVariantContexts;
 
-        public final Class<? extends BreakpointsInference> inferencer;
+        public final Class<? extends BreakpointsInference> expectedInferencerClass;
 
         public AssemblyBasedSVDiscoveryTestDataForSimpleChimera(final AlignmentInterval firstAlignment, final AlignmentInterval secondAlignment,
                                                                 final String evidenceAssemblyContigName, final byte[] evidenceContigSeq,
                                                                 final boolean expectedFirstContigRegionHasLaterReferenceMapping,
-                                                                final SimpleChimera manuallyCuratedSimpleChimera,
-                                                                final NovelAdjacencyAndAltHaplotype manuallyCuratedBiPathBubble,
-                                                                final List<SvType> manuallyCuratedSVTypes,
-                                                                final List<VariantContext> manuallyCuratedVariants,
-                                                                final Class<? extends BreakpointsInference> inferencer) {
+                                                                final SimpleChimera expectedSimpleChimera,
+                                                                final NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltSeq,
+                                                                final List<SvType> expectedSvTypes,
+                                                                final List<VariantContext> expectedVariantContexts,
+                                                                final Class<? extends BreakpointsInference> expectedInferencerClass) {
             this.firstAlignment = firstAlignment;
             this.secondAlignment = secondAlignment;
             this.evidenceAssemblyContigName = evidenceAssemblyContigName;
             this.evidenceContigSeq = evidenceContigSeq;
             this.expectedFirstContigRegionHasLaterReferenceMapping = expectedFirstContigRegionHasLaterReferenceMapping;
-            this.manuallyCuratedSimpleChimera = manuallyCuratedSimpleChimera;
-            this.manuallyCuratedBiPathBubble = manuallyCuratedBiPathBubble;
-            this.manuallyCuratedSVTypes = manuallyCuratedSVTypes;
-            this.manuallyCuratedVariants = manuallyCuratedVariants;
-            this.inferencer = inferencer;
+            this.expectedSimpleChimera = expectedSimpleChimera;
+            this.expectedNovelAdjacencyAndAltSeq = expectedNovelAdjacencyAndAltSeq;
+            this.expectedSvTypes = expectedSvTypes;
+            this.expectedVariantContexts = expectedVariantContexts;
+            this.expectedInferencerClass = expectedInferencerClass;
         }
 
         abstract public SAMSequenceDictionary getAppropriateDictionary();
@@ -63,6 +71,19 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
         abstract public ReferenceMultiSource getAppropriateRef();
 
         abstract public Class<? extends BreakpointsInference> getAppropriateBreakpointInferencer();
+    }
+
+    abstract public List<AssemblyBasedSVDiscoveryTestDataForSimpleChimera> getAllTestData();
+
+    // same event, two representations from opposite strands
+    public final List<Tuple2<AssemblyBasedSVDiscoveryTestDataForSimpleChimera, AssemblyBasedSVDiscoveryTestDataForSimpleChimera>> getAllTestDataPaired() {
+        final List<AssemblyBasedSVDiscoveryTestDataForSimpleChimera> allTestData = getAllTestData();
+        final List<Tuple2<AssemblyBasedSVDiscoveryTestDataForSimpleChimera, AssemblyBasedSVDiscoveryTestDataForSimpleChimera>> testDataForSimpleSVs
+                = new ArrayList<>(allTestData.size()/2);
+        for (int i = 0; i < allTestData.size() - 1; i += 2) {
+            testDataForSimpleSVs.add(new Tuple2<>(allTestData.get(i), allTestData.get(i+1)));
+        }
+        return Collections.unmodifiableList(testDataForSimpleSVs);
     }
 
     // data block ======================================================================================================
@@ -84,7 +105,7 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
     // utils block =====================================================================================================
 
     /**
-     * Note that {@code delRange} is expected to be pre-process to VCF spec compatible,
+     * Note that {@code delRange} is expected to be VCF spec compatible,
      * e.g. if chr1:101-200 is deleted, then {@code delRange} should be chr1:100-200
      */
     static final VariantContextBuilder makeDeletion(final SimpleInterval delRange, final Allele refAllele, final boolean isFromDupContraction) {
@@ -108,7 +129,7 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
 
     static final VariantContextBuilder makeInversion(final SimpleInterval invertedRegion, final Allele refAllele) {
         return new VariantContextBuilder()
-                .chr(invertedRegion.getContig()).start(invertedRegion.getStart() - 1).stop(invertedRegion.getEnd())     // TODO: 5/2/18 VCF spec doesn't requst left shift by 1 for inversion POS
+                .chr(invertedRegion.getContig()).start(invertedRegion.getStart() - 1).stop(invertedRegion.getEnd())     // TODO: 5/2/18 VCF spec doesn't require left shift by 1 for inversion POS
                 .alleles(Arrays.asList(refAllele, INV_SYMB_ALLELE))
                 .id(makeID(SimpleSVType.SupportedType.INV.name(), invertedRegion.getContig(), invertedRegion.getStart() - 1, invertedRegion.getContig(), invertedRegion.getEnd(), ""))
                 .attribute(VCFConstants.END_KEY, invertedRegion.getEnd())

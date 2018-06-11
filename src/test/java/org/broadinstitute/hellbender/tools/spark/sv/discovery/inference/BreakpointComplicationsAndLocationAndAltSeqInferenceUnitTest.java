@@ -57,7 +57,7 @@ public class BreakpointComplicationsAndLocationAndAltSeqInferenceUnitTest extend
     @DataProvider
     private Object[][] forGetInferenceClass() {
         final List<Object[]> data = new ArrayList<>(20);
-        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera assemblyBasedSVDiscoveryTestDataForSimpleChimera : baseDataProvider()) {
+        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera assemblyBasedSVDiscoveryTestDataForSimpleChimera : getAllTestData()) {
             final SAMSequenceDictionary appropriateDictionary = assemblyBasedSVDiscoveryTestDataForSimpleChimera.getAppropriateDictionary();
             SimpleChimera simpleChimera = new SimpleChimera(assemblyBasedSVDiscoveryTestDataForSimpleChimera.firstAlignment, assemblyBasedSVDiscoveryTestDataForSimpleChimera.secondAlignment,
                     Collections.emptyList(), assemblyBasedSVDiscoveryTestDataForSimpleChimera.evidenceAssemblyContigName, NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME,
@@ -134,13 +134,13 @@ public class BreakpointComplicationsAndLocationAndAltSeqInferenceUnitTest extend
     @DataProvider
     private Object[][] forBreakpointComplicationsAndLocationAndAltSeqInference() {
         final List<Object[]> data = new ArrayList<>(20);
-        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera assemblyBasedSVDiscoveryTestDataForSimpleChimera : baseDataProvider()) {
+        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera assemblyBasedSVDiscoveryTestDataForSimpleChimera : getAllTestData()) {
             final SAMSequenceDictionary appropriateDictionary = assemblyBasedSVDiscoveryTestDataForSimpleChimera.getAppropriateDictionary();
             SimpleChimera simpleChimera = new SimpleChimera(assemblyBasedSVDiscoveryTestDataForSimpleChimera.firstAlignment, assemblyBasedSVDiscoveryTestDataForSimpleChimera.secondAlignment,
                     Collections.emptyList(), assemblyBasedSVDiscoveryTestDataForSimpleChimera.evidenceAssemblyContigName, NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME,
                     appropriateDictionary);
             data.add(new Object[]{simpleChimera, assemblyBasedSVDiscoveryTestDataForSimpleChimera.evidenceContigSeq, appropriateDictionary,
-                                  assemblyBasedSVDiscoveryTestDataForSimpleChimera.manuallyCuratedBiPathBubble
+                                  assemblyBasedSVDiscoveryTestDataForSimpleChimera.expectedNovelAdjacencyAndAltSeq
             });
         }
         return data.toArray(new Object[data.size()][]);

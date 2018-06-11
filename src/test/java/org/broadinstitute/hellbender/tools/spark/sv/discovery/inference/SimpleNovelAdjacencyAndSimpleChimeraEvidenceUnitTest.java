@@ -3,7 +3,6 @@ package org.broadinstitute.hellbender.tools.spark.sv.discovery.inference;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import org.broadinstitute.hellbender.tools.spark.sv.discovery.TestUtilsForAssemblyBasedSVDiscovery;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -27,8 +26,8 @@ public class SimpleNovelAdjacencyAndSimpleChimeraEvidenceUnitTest extends Assemb
         final List<Object[]> data = new ArrayList<>();
 
         for (final Tuple2<? extends AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera, ? extends AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera>
-                pair : baseDataProviderInPairs()) {
-            final NovelAdjacencyAndAltHaplotype biPathBubble = pair._1.manuallyCuratedBiPathBubble;
+                pair : getAllTestDataInPairs()) {
+            final NovelAdjacencyAndAltHaplotype biPathBubble = pair._1.expectedNovelAdjacencyAndAltSeq;
             final SimpleChimera forwardRep = new SimpleChimera(pair._1.firstAlignment, pair._1.secondAlignment, Collections.emptyList(),
                     pair._1.evidenceAssemblyContigName, NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME,
                     pair._1.getAppropriateDictionary());

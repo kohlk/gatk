@@ -11,7 +11,6 @@ import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.Alignmen
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.ContigAlignmentsModifier;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -19,27 +18,14 @@ import java.util.*;
 
 import static org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection.DiscoverVariantsFromContigsAlignmentsSparkArgumentCollection.CHIMERIC_ALIGNMENTS_HIGHMQ_THRESHOLD;
 import static org.broadinstitute.hellbender.tools.spark.sv.discovery.SimpleSVType.SupportedType.*;
-import static org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.forSimpleInversionWithHom_leftPlus;
-import static org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.forSimpleInversionWithHomology_RightBreakpoint_minus;
-import static org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV.*;
 import static org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.ContigChimericAlignmentIterativeInterpreter.firstAlignmentIsTooShort;
 import static org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.ContigChimericAlignmentIterativeInterpreter.nextAlignmentMayBeInsertion;
 import static org.broadinstitute.hellbender.tools.spark.sv.utils.GATKSVVCFConstants.*;
 
 public class ContigChimericAlignmentIterativeInterpreterUnitTest extends GATKBaseTest {
 
-    /**
-     * Hack to force trigger test data generation.
-     */
-    @BeforeClass
-    private void makeSureDataIsAvailable() {
-        if(!AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV.testDataInitialized) {
-            new AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV();
-        }
-        if(!AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.testDataInitialized) {
-            new AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints();
-        }
-    }
+    private final AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV assemblyBasedSVDiscoveryTestDataProviderForSimpleSV = new AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV();
+    private final AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints assemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints = new AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints();
 
     // -----------------------------------------------------------------------------------------------
     // Test on step 1: chimeric alignments extraction
@@ -65,12 +51,6 @@ public class ContigChimericAlignmentIterativeInterpreterUnitTest extends GATKBas
         Assert.assertTrue(nextAlignmentMayBeInsertion(overlappingRegion1, overlappingRegion2,  CHIMERIC_ALIGNMENTS_HIGHMQ_THRESHOLD, 50,true));
     }
 
-    // TODO: 5/23/18 test
-    @Test(groups = "sv")
-    public void testParseOneContig() {
-
-    }
-
     // -----------------------------------------------------------------------------------------------
     // Test on step 3: turn into variant context from novel adjacency (no tests on step 2 because that was tested by NovelAdjacencyAndAltHaplotypeUnitTest)
     // -----------------------------------------------------------------------------------------------
@@ -78,42 +58,42 @@ public class ContigChimericAlignmentIterativeInterpreterUnitTest extends GATKBas
     private Object[][] forInferSimpleTypeFromNovelAdjacency() {
         final List<Object[]> data = new ArrayList<>(20);
         // inversion
-        data.add(new Object[]{forSimpleInversionWithHomology_RightBreakpoint_minus.manuallyCuratedBiPathBubble, INV.name(), ImmutableSet.of(INV33)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.forSimpleInversionWithHomology_RightBreakpoint_minus.expectedNovelAdjacencyAndAltSeq, INV.name(), ImmutableSet.of(INV33)});
 
-        data.add(new Object[]{forSimpleInversionWithHom_leftPlus.manuallyCuratedBiPathBubble, INV.name(), ImmutableSet.of(INV55)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.forSimpleInversionWithHom_leftPlus.expectedNovelAdjacencyAndAltSeq, INV.name(), ImmutableSet.of(INV55)});
 
         // simple deletion
-        data.add(new Object[]{forSimpleDeletion_plus.manuallyCuratedBiPathBubble, DEL.name(), Collections.emptySet()});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleDeletion_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet()});
 
         // simple deletion with homology
-        data.add(new Object[]{forDeletionWithHomology_minus.manuallyCuratedBiPathBubble, DEL.name(), Collections.emptySet()});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forDeletionWithHomology_minus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet()});
 
         // simple insertion
-        data.add(new Object[]{forSimpleInsertion_minus.manuallyCuratedBiPathBubble, INS.name(), Collections.emptySet()});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleInsertion_minus.expectedNovelAdjacencyAndAltSeq, INS.name(), Collections.emptySet()});
 
         // long range substitution
-        data.add(new Object[]{forLongRangeSubstitution_fudgedDel_plus.manuallyCuratedBiPathBubble, DEL.name(), Collections.emptySet()});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forLongRangeSubstitution_fudgedDel_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet()});
 
         // simple tandem dup contraction from 2 units to 1 unit
-        data.add(new Object[]{forSimpleTanDupContraction_plus.manuallyCuratedBiPathBubble, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupContraction_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
 
         // simple tandem dup expansion from 1 unit to 2 units
-        data.add(new Object[]{forSimpleTanDupExpansion_ins_minus.manuallyCuratedBiPathBubble, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupExpansion_ins_minus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
 
         // simple tandem dup expansion from 1 unit to 2 units and novel insertion
-        data.add(new Object[]{forSimpleTanDupExpansionWithNovelIns_dup_plus.manuallyCuratedBiPathBubble, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupExpansionWithNovelIns_dup_plus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
 
         // tandem dup expansion from 1 unit to 2 units with pseudo-homology
-        data.add(new Object[]{forComplexTanDup_1to2_pseudoHom_minus.manuallyCuratedBiPathBubble, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_1to2_pseudoHom_minus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
 
         // tandem dup contraction from 2 units to 1 unit with pseudo-homology
-        data.add(new Object[]{forComplexTanDup_2to1_pseudoHom_plus.manuallyCuratedBiPathBubble, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_2to1_pseudoHom_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
 
         // tandem dup contraction from 3 units to 2 units
-        data.add(new Object[]{forComplexTanDup_3to2_noPseudoHom_minus.manuallyCuratedBiPathBubble, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_3to2_noPseudoHom_minus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
 
         // tandem dup expansion from 2 units to 3 units
-        data.add(new Object[]{forComplexTanDup_2to3_noPseudoHom_plus.manuallyCuratedBiPathBubble, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_2to3_noPseudoHom_plus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
 
         return data.toArray(new Object[data.size()][]);
     }

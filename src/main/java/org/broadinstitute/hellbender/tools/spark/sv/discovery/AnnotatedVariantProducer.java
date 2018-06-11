@@ -65,8 +65,6 @@ public class AnnotatedVariantProducer implements Serializable {
         final VariantContextBuilder builder1 = new VariantContextBuilder(secondVar);
         builder1.attribute(linkKey, firstVar.getID());
 
-
-
         return Arrays.asList(builder0.make(), builder1.make());
     }
 

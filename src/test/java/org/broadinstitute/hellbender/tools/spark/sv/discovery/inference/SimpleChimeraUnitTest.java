@@ -113,35 +113,35 @@ public class SimpleChimeraUnitTest extends AssemblyBasedSVDiscoveryBaseTest {
         }
     }
 
-    private static List<TestData> casesForSimpleSymbolicVariants() {
+    private List<TestData> casesForSimpleSymbolicVariants() {
         final List<TestData> result = new ArrayList<>(20);
-        for (final TestDataForSimpleSV testDataForSimpleSV : AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV.getAllTestData()) {
+        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera testDataForSimpleSV : forSimpleSV.getAllTestData()) {
             result.add(new TestData(testDataForSimpleSV.firstAlignment, testDataForSimpleSV.secondAlignment, testDataForSimpleSV.getAppropriateDictionary(),
-                    testDataForSimpleSV.distances, testDataForSimpleSV.manuallyCuratedSimpleChimera.strandSwitch,
-                    testDataForSimpleSV.manuallyCuratedSimpleChimera.isForwardStrandRepresentation,
+                    ((TestDataForSimpleSV)testDataForSimpleSV).expectedDistances, testDataForSimpleSV.expectedSimpleChimera.strandSwitch,
+                    testDataForSimpleSV.expectedSimpleChimera.isForwardStrandRepresentation,
                     testDataForSimpleSV.expectedFirstContigRegionHasLaterReferenceMapping,
                     false, false,
-                    testDataForSimpleSV.manuallyCuratedBiPathBubble.getTypeInferredFromSimpleChimera()));
+                    testDataForSimpleSV.expectedNovelAdjacencyAndAltSeq.getTypeInferredFromSimpleChimera()));
         }
         return result;
     }
 
-    private static List<TestData> casesForInversion() {
+    private List<TestData> casesForInversion() {
 
         final List<TestData> result = new ArrayList<>(20);
 
-        for (final AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.TestDataForInversion testDataForSimpleSV : AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.getAllTestData()) {
+        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera testDataForSimpleSV : forInversionBreakpoints.getAllTestData()) {
             result.add(new TestData(testDataForSimpleSV.firstAlignment, testDataForSimpleSV.secondAlignment, testDataForSimpleSV.getAppropriateDictionary(),
-                    null, testDataForSimpleSV.manuallyCuratedSimpleChimera.strandSwitch,
-                    testDataForSimpleSV.manuallyCuratedSimpleChimera.isForwardStrandRepresentation,
+                    null, testDataForSimpleSV.expectedSimpleChimera.strandSwitch,
+                    testDataForSimpleSV.expectedSimpleChimera.isForwardStrandRepresentation,
                     testDataForSimpleSV.expectedFirstContigRegionHasLaterReferenceMapping, false, false,
-                    testDataForSimpleSV.manuallyCuratedBiPathBubble.getTypeInferredFromSimpleChimera()));
+                    testDataForSimpleSV.expectedNovelAdjacencyAndAltSeq.getTypeInferredFromSimpleChimera()));
         }
 
         return result;
     }
 
-    private static List<TestData> casesForInvertedDuplication() {
+    private List<TestData> casesForInvertedDuplication() {
 
         final List<TestData> result = new ArrayList<>(20);
 
@@ -159,16 +159,16 @@ public class SimpleChimeraUnitTest extends AssemblyBasedSVDiscoveryBaseTest {
         return result;
     }
 
-    private static List<TestData> casesForBreakEndVariants() {
+    private List<TestData> casesForBreakEndVariants() {
 
         final List<TestData> result = new ArrayList<>(20);
-        for (final AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants.TestDataBreakEndVariants testDataForSimpleSV : AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants.getAllTestData()) {
+        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera testDataForSimpleSV : forBreakEndVariants.getAllTestData()) {
             result.add(new TestData(testDataForSimpleSV.firstAlignment, testDataForSimpleSV.secondAlignment, testDataForSimpleSV.getAppropriateDictionary(),
-                    null, testDataForSimpleSV.manuallyCuratedSimpleChimera.strandSwitch,
-                    testDataForSimpleSV.manuallyCuratedSimpleChimera.isForwardStrandRepresentation,
+                    null, testDataForSimpleSV.expectedSimpleChimera.strandSwitch,
+                    testDataForSimpleSV.expectedSimpleChimera.isForwardStrandRepresentation,
                     testDataForSimpleSV.expectedFirstContigRegionHasLaterReferenceMapping,
                     true, false,
-                    testDataForSimpleSV.manuallyCuratedBiPathBubble.getTypeInferredFromSimpleChimera()));
+                    testDataForSimpleSV.expectedNovelAdjacencyAndAltSeq.getTypeInferredFromSimpleChimera()));
         }
 
         return result;

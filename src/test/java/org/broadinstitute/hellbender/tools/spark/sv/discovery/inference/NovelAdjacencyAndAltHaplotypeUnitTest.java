@@ -22,8 +22,8 @@ public class NovelAdjacencyAndAltHaplotypeUnitTest extends AssemblyBasedSVDiscov
     @DataProvider(name = "forKryoSerializationAndHashCode")
     private Object[][] forKryoSerializationAndHashCode() {
         final List<Object[]> data = new ArrayList<>();
-        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera testData : baseDataProvider()) {
-            data.add(new Object[]{testData.manuallyCuratedBiPathBubble});
+        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera testData : getAllTestData()) {
+            data.add(new Object[]{testData.expectedNovelAdjacencyAndAltSeq});
         }
         return data.toArray(new Object[data.size()][]);
     }
@@ -50,9 +50,9 @@ public class NovelAdjacencyAndAltHaplotypeUnitTest extends AssemblyBasedSVDiscov
     private Object[][] forToSimpleOrBNDTypes() {
         final List<Object[]> data = new ArrayList<>(20);
 
-        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera assemblyBasedSVDiscoveryTestDataForSimpleChimera : baseDataProvider()) {
-            data.add(new Object[]{assemblyBasedSVDiscoveryTestDataForSimpleChimera.manuallyCuratedBiPathBubble,
-                                  assemblyBasedSVDiscoveryTestDataForSimpleChimera.manuallyCuratedSVTypes,
+        for (final AssemblyBasedSVDiscoveryTestDataProvider.AssemblyBasedSVDiscoveryTestDataForSimpleChimera assemblyBasedSVDiscoveryTestDataForSimpleChimera : getAllTestData()) {
+            data.add(new Object[]{assemblyBasedSVDiscoveryTestDataForSimpleChimera.expectedNovelAdjacencyAndAltSeq,
+                                  assemblyBasedSVDiscoveryTestDataForSimpleChimera.expectedSvTypes,
                                   assemblyBasedSVDiscoveryTestDataForSimpleChimera.getAppropriateRef(),
                                   assemblyBasedSVDiscoveryTestDataForSimpleChimera.getAppropriateDictionary()}
             );

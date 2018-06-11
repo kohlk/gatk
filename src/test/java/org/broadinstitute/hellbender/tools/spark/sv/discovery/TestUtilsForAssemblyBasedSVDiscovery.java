@@ -2,6 +2,7 @@ package org.broadinstitute.hellbender.tools.spark.sv.discovery;
 
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.SequenceUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.hellbender.GATKBaseTest;
 import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
 import org.broadinstitute.hellbender.engine.datasources.ReferenceWindowFunctions;
@@ -65,6 +66,10 @@ public final class TestUtilsForAssemblyBasedSVDiscovery {
         final byte[] result = new byte[length];
         Arrays.fill(result, base);
         return result;
+    }
+
+    public static String makeDummySequence(final char base, final int length) {
+        return StringUtils.repeat(base, length);
     }
 
     // WARNING: THIS SHOULD BE USED ONLY FOR CONSTRUCTING ALIGNMENT INTERVAL FOR SV TESTS FROM WELL FORMATTED SAM STRING
