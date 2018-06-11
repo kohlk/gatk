@@ -96,8 +96,8 @@ public class FilterVariantTranches extends TwoPassVariantWalker {
 
     @Override
     public void onTraversalStart() {
-        if (tranches.size() < 1 || tranches.stream().anyMatch(d -> d < 0 || d > 100.0)){
-            throw new GATKException("At least 1 tranche value must be given and all tranches must be between 0 and 100.");
+        if (tranches.size() < 1 || tranches.stream().anyMatch(d -> d < 0 || d >= 100.0)){
+            throw new GATKException("At least 1 tranche value must be given and all tranches must be greater than 0 and less than 100.");
         }
         tranches = tranches.stream().distinct().collect(Collectors.toList());
         tranches.sort(Double::compareTo);
