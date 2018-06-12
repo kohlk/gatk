@@ -7,6 +7,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import htsjdk.samtools.util.SequenceUtil;
+import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.vcf.VCFConstants;
 import org.broadinstitute.hellbender.exceptions.GATKException;
@@ -378,31 +379,18 @@ final class CpxVariantCanonicalRepresentation {
 
     @VisibleForTesting
     VariantContextBuilder toVariantContext(final byte[] refBases) {
-
-        final CpxVariantType cpxVariant = new CpxVariantType(affectedRefRegion, altSeq.length, typeSpecificExtraAttributes());
-
-        final VariantContextBuilder vcBuilder = new VariantContextBuilder()
-                .chr(affectedRefRegion.getContig()).start(affectedRefRegion.getStart()).stop(affectedRefRegion.getEnd())
-                .alleles(AnnotatedVariantProducer.produceAlleles(refBases, cpxVariant))
-                .id(cpxVariant.getInternalVariantId())
-                .attribute(SVTYPE, cpxVariant.toString())
-                .attribute(VCFConstants.END_KEY, affectedRefRegion.getEnd())
-                .attribute(SVLEN, cpxVariant.getSVLength())
-                .attribute(SEQ_ALT_HAPLOTYPE, new String(altSeq));
-
-        cpxVariant.getTypeSpecificAttributes().forEach(vcBuilder::attribute);
-        return vcBuilder;
-    }
-
-    private Map<String, String> typeSpecificExtraAttributes() {
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(CPX_EVENT_ALT_ARRANGEMENTS, String.join(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR, eventDescriptions));
+        final Map<String, Object> typeSpecificAttributes = new HashMap<>();
+        typeSpecificAttributes.put(CPX_EVENT_ALT_ARRANGEMENTS,
+                String.join(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR, eventDescriptions));
         if ( ! referenceSegments.isEmpty() ) {
-            attributes.put(CPX_SV_REF_SEGMENTS,
+            typeSpecificAttributes.put(CPX_SV_REF_SEGMENTS,
                     String.join(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR,
                             referenceSegments.stream().map(SimpleInterval::toString).collect(Collectors.toList())));
         }
-        return attributes;
+
+        return new CpxVariantType(affectedRefRegion, refBases, altSeq.length, typeSpecificAttributes)
+                .getBasicInformation()
+                .attribute(SEQ_ALT_HAPLOTYPE, new String(altSeq));
     }
 
     // =================================================================================================================

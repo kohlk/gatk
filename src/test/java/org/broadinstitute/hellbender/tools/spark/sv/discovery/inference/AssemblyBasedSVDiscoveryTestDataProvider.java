@@ -14,10 +14,7 @@ import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.Alignmen
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import scala.Tuple2;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.broadinstitute.hellbender.tools.spark.sv.utils.GATKSVVCFConstants.*;
 
@@ -119,12 +116,15 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
                 .attribute(SVTYPE, SimpleSVType.SupportedType.DEL.name());
     }
 
-    static final SvType makeDeletionType(final SimpleInterval delRange, final boolean isFromDupContraction) {
+    static final SvType makeDeletionType(final SimpleInterval delRange, final Allele refAllele, final boolean isFromDupContraction) {
         return new SimpleSVType.Deletion(
+                delRange.getContig(), delRange.getStart(), delRange.getEnd(),
                 makeID((isFromDupContraction? DUP_TAN_CONTRACTION_INTERNAL_ID_START_STRING : SimpleSVType.SupportedType.DEL.name()),
                         delRange.getContig(), delRange.getStart(), delRange.getContig(), delRange.getEnd(), ""),
-                DEL_SYMB_ALLELE, -delRange.size()+ 1,
-                isFromDupContraction ? Collections.singletonMap(DUP_TAN_CONTRACTION_STRING, "") :Collections.emptyMap());
+                refAllele,
+                DEL_SYMB_ALLELE,
+                - delRange.size()+ 1,
+                isFromDupContraction ? Collections.singletonMap(DUP_TAN_CONTRACTION_STRING, true) :Collections.emptyMap());
     }
 
     static final VariantContextBuilder makeInversion(final SimpleInterval invertedRegion, final Allele refAllele) {
@@ -137,12 +137,16 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
                 .attribute(SVTYPE, SimpleSVType.SupportedType.INV.name());
     }
 
-    static final SvType makeInversionType(final SimpleInterval invRange, final boolean isInv55) {
+    static final SvType makeInversionType(final SimpleInterval invRange, final Allele refAllele, final boolean isInv55) {
         return new SimpleSVType.Inversion(
+                invRange.getContig(),
+                invRange.getStart() - 1,
+                invRange.getEnd(),
                 makeID((isInv55? INV55 : INV33),
                         invRange.getContig(), invRange.getStart() - 1, invRange.getContig(), invRange.getEnd(), ""),
+                refAllele,
                 INV_SYMB_ALLELE, invRange.size(),
-                Collections.singletonMap((isInv55) ? INV55 : INV33, ""));
+                Collections.singletonMap((isInv55) ? INV55 : INV33, true));
     }
 
     static final VariantContextBuilder makeInsertion(final String chr, final int pos, final int end, final int svLen,
@@ -156,11 +160,15 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
                 .attribute(SVTYPE, SimpleSVType.SupportedType.INS.name());
     }
 
-    static final SvType makeInsertionType(final SimpleInterval insertionPos, final int insLen) {
+    static final SvType makeInsertionType(final SimpleInterval insertionPos, final Allele refAllele, final int svLen) {
         return new SimpleSVType.Insertion(
+                insertionPos.getContig(),
+                insertionPos.getStart(),
+                insertionPos.getEnd(),
                 makeID(SimpleSVType.SupportedType.INS.name(),
                         insertionPos.getContig(), insertionPos.getStart(), insertionPos.getContig(), insertionPos.getEnd(), ""),
-                INS_SYMB_ALLELE, insLen,
+                refAllele,
+                INS_SYMB_ALLELE, svLen,
                 Collections.emptyMap());
     }
 
@@ -175,12 +183,16 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
                 .attribute(SVTYPE, SimpleSVType.SupportedType.DUP.name());
     }
 
-    static final SvType makeTandemDuplicationType(final SimpleInterval duplicatedRange, final int svLen) {
+    static final SvType makeTandemDuplicationType(final SimpleInterval duplicatedRange, final Allele refAllele, final int svLen) {
         return new SimpleSVType.DuplicationTandem(
+                duplicatedRange.getContig(),
+                duplicatedRange.getStart() - 1,
+                duplicatedRange.getStart() - 1,
                 makeID(DUP_TAN_EXPANSION_INTERNAL_ID_START_STRING,
                         duplicatedRange.getContig(), duplicatedRange.getStart(), duplicatedRange.getContig(), duplicatedRange.getEnd(), ""),
+                refAllele,
                 DUP_SYMB_ALLELE, svLen,
-                Collections.singletonMap(DUP_TAN_EXPANSION_STRING, ""));
+                Collections.singletonMap(DUP_TAN_EXPANSION_STRING, true));
     }
 
     static final VariantContextBuilder makeBND(final SimpleInterval upstreamLoc, final SimpleInterval dnstreamLoc,
@@ -217,20 +229,22 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
         }
     }
 
-    static final SvType makeBNDType(final String id, final Allele altAllele, final boolean isTheUpstreamMate,
+    static final SvType makeBNDType(final String variantCHR, final int variantPOS, final String variantId,
+                                    final Allele refAllele, final Allele altAllele, final Map<String, Object> extraAttributes,
+                                    final boolean isTheUpstreamMate,
                                     final BreakEndVariantType.SupportedType type) {
         switch (type) {
             case INTRA_CHR_STRAND_SWITCH_55:
-                return new BreakEndVariantType.IntraChromosomalStrandSwitch55BreakEnd(id, altAllele, isTheUpstreamMate);
+                return new BreakEndVariantType.IntraChromosomalStrandSwitch55BreakEnd(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
             case INTRA_CHR_STRAND_SWITCH_33:
-                return new BreakEndVariantType.IntraChromosomalStrandSwitch33BreakEnd(id, altAllele, isTheUpstreamMate);
+                return new BreakEndVariantType.IntraChromosomalStrandSwitch33BreakEnd(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
             case INTRA_CHR_REF_ORDER_SWAP:
-                return new BreakEndVariantType.IntraChromosomeRefOrderSwap(id, altAllele, isTheUpstreamMate);
+                return new BreakEndVariantType.IntraChromosomeRefOrderSwap(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
             case INTER_CHR_STRAND_SWITCH_55:
             case INTER_CHR_STRAND_SWITCH_33:
             case INTER_CHR_NO_SS_WITH_LEFT_MATE_FIRST_IN_PARTNER:
             case INTER_CHR_NO_SS_WITH_LEFT_MATE_SECOND_IN_PARTNER:
-                return new BreakEndVariantType.InterChromosomeBreakend(id, altAllele, isTheUpstreamMate);
+                return new BreakEndVariantType.InterChromosomeBreakend(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
             default:
                 throw new GATKException("Unrecognized type: " + type.name());
         }

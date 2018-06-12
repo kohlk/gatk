@@ -51,29 +51,28 @@ public class AnnotatedVariantProducer implements Serializable {
                                                                           final Broadcast<SAMSequenceDictionary> broadcastSequenceDictionary,
                                                                           final Broadcast<SVIntervalTree<VariantContext>> broadcastCNVCalls,
                                                                           final String sampleId,
-                                                                          final String linkKey)
-            throws IOException {
+                                                                          final String linkKey) {
 
         final VariantContext firstVar = produceAnnotatedVcFromAssemblyEvidence(linkedVariants._1, simpleNovelAdjacencyAndChimericAlignmentEvidence,
                 broadcastReference, broadcastSequenceDictionary, broadcastCNVCalls, sampleId).make();
         final VariantContext secondVar = produceAnnotatedVcFromAssemblyEvidence(linkedVariants._2, simpleNovelAdjacencyAndChimericAlignmentEvidence,
                 broadcastReference, broadcastSequenceDictionary, broadcastCNVCalls, sampleId).make();
 
-        final VariantContextBuilder builder0 = new VariantContextBuilder(firstVar);
-        builder0.attribute(linkKey, secondVar.getID());
+        final VariantContextBuilder builder1 = new VariantContextBuilder(firstVar);
+        builder1.attribute(linkKey, secondVar.getID());
 
-        final VariantContextBuilder builder1 = new VariantContextBuilder(secondVar);
-        builder1.attribute(linkKey, firstVar.getID());
+        final VariantContextBuilder builder2 = new VariantContextBuilder(secondVar);
+        builder2.attribute(linkKey, firstVar.getID());
 
         // manually remove inserted sequence information from RPL event-produced DEL, when it can be linked with an INS
         if (linkedVariants._1 instanceof SimpleSVType.Deletion)
-            return Arrays.asList(builder0.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE).rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH).rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE).make(),
-                                 builder1.make());
+            return Arrays.asList(builder1.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE).rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH).rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE).make(),
+                                 builder2.make());
         else if (linkedVariants._2 instanceof SimpleSVType.Deletion) {
-            return Arrays.asList(builder0.make(),
-                                 builder1.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE).rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH).rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE).make());
+            return Arrays.asList(builder1.make(),
+                                 builder2.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE).rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH).rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE).make());
         } else
-            return Arrays.asList(builder0.make(), builder1.make());
+            return Arrays.asList(builder1.make(), builder2.make());
     }
 
     /**
@@ -85,61 +84,49 @@ public class AnnotatedVariantProducer implements Serializable {
      * @param broadcastSequenceDictionary       broadcast reference sequence dictionary
      * @param broadcastCNVCalls                 broadcast of external CNV calls, if available, will be used for annotating the assembly based calls
      * @param sampleId                          sample identifier of the current sample
-     * @throws IOException                      due to read operations on the reference
      */
     public static VariantContextBuilder produceAnnotatedVcFromAssemblyEvidence(final SvType inferredType,
                                                                                final SimpleNovelAdjacencyAndChimericAlignmentEvidence simpleNovelAdjacencyAndChimericAlignmentEvidence,
                                                                                final Broadcast<ReferenceMultiSource> broadcastReference,
                                                                                final Broadcast<SAMSequenceDictionary> broadcastSequenceDictionary,
                                                                                final Broadcast<SVIntervalTree<VariantContext>> broadcastCNVCalls,
-                                                                               final String sampleId)
-            throws IOException {
+                                                                               final String sampleId) {
 
         final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype = simpleNovelAdjacencyAndChimericAlignmentEvidence.getNovelAdjacencyReferenceLocations();
         final List<SimpleChimera> contigEvidence = simpleNovelAdjacencyAndChimericAlignmentEvidence.getAlignmentEvidence();
 
         // basic information and attributes
-        final VariantContextBuilder vcBuilder = getBasicInformation(novelAdjacencyAndAltHaplotype, inferredType,
-                broadcastReference, broadcastSequenceDictionary, broadcastCNVCalls, sampleId)
-                .id(inferredType.getInternalVariantId())
-                .attribute(GATKSVVCFConstants.SVTYPE, inferredType.toString());
+        final VariantContextBuilder vcBuilder = inferredType.getBasicInformation();
 
         // attributes from complications
-        inferredType.getTypeSpecificAttributes().forEach(vcBuilder::attribute);
         novelAdjacencyAndAltHaplotype.getComplication().toVariantAttributes().forEach(vcBuilder::attribute);
 
         // evidence used for producing the novel adjacency
         getAssemblyEvidenceRelatedAnnotations(contigEvidence).forEach(vcBuilder::attribute);
 
-        return vcBuilder;
+        // alt seq for non-BND variants, and if available or not empty
+        final byte[] altHaplotypeSequence = novelAdjacencyAndAltHaplotype.getAltHaplotypeSequence();
+        if (inferredType instanceof BreakEndVariantType) {
+            return annotateWithExternalCNVCalls(inferredType.getVariantCHR(), inferredType.getVariantPOS(), inferredType.getVariantEND(),
+                    vcBuilder, broadcastSequenceDictionary, broadcastCNVCalls, sampleId);
+        } else if (altHaplotypeSequence != null && altHaplotypeSequence.length != 0)
+            vcBuilder.attribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE, StringUtil.bytesToString(altHaplotypeSequence));
+
+        return annotateWithExternalCNVCalls(inferredType.getVariantCHR(), inferredType.getVariantPOS(), inferredType.getVariantEND(),
+                vcBuilder, broadcastSequenceDictionary, broadcastCNVCalls, sampleId);
     }
 
-    public static VariantContext produceAnnotatedVcFromEvidenceTargetLink(final EvidenceTargetLink e,
-                                                                          final SvType svType,
-                                                                          final ReadMetadata metadata,
-                                                                          final ReferenceMultiSource reference) {
-        final String sequenceName = metadata.getContigName(e.getPairedStrandedIntervals().getLeft().getInterval().getContig());
-        final int start = e.getPairedStrandedIntervals().getLeft().getInterval().midpoint();
-        final int end = e.getPairedStrandedIntervals().getRight().getInterval().midpoint();
-        try {
-            final VariantContextBuilder builder = new VariantContextBuilder()
-                    .chr(sequenceName)
-                    .start(start)
-                    .stop(end)
-                    .id(svType.variantId)
-                    .alleles(produceAlleles(new SimpleInterval(sequenceName, start, start), reference, svType))
-                    .attribute(VCFConstants.END_KEY, end)
-                    .attribute(GATKSVVCFConstants.SVLEN, svType.getSVLength())
-                    .attribute(GATKSVVCFConstants.SVTYPE, svType.toString())
-                    .attribute(GATKSVVCFConstants.IMPRECISE, true)
-                    .attribute(GATKSVVCFConstants.CIPOS, produceCIInterval(start, e.getPairedStrandedIntervals().getLeft().getInterval()))
-                    .attribute(GATKSVVCFConstants.CIEND, produceCIInterval(end, e.getPairedStrandedIntervals().getRight().getInterval()))
-                    .attribute(GATKSVVCFConstants.READ_PAIR_SUPPORT, e.getReadPairs())
-                    .attribute(GATKSVVCFConstants.SPLIT_READ_SUPPORT, e.getSplitReads());
-            return builder.make();
-        } catch (IOException e1) {
-            throw new GATKException("error reading reference base for variant context " + svType.variantId, e1);
-        }
+    public static VariantContext produceAnnotatedVcFromEvidenceTargetLink(final EvidenceTargetLink evidenceTargetLink,
+                                                                          final SvType svType) {
+        final int start = evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval().midpoint();
+        final int end = evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval().midpoint();
+        final VariantContextBuilder builder = svType
+                .getBasicInformation()
+                .attribute(GATKSVVCFConstants.CIPOS, produceCIInterval(start, evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval()))
+                .attribute(GATKSVVCFConstants.CIEND, produceCIInterval(end, evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval()))
+                .attribute(GATKSVVCFConstants.READ_PAIR_SUPPORT, evidenceTargetLink.getReadPairs())
+                .attribute(GATKSVVCFConstants.SPLIT_READ_SUPPORT, evidenceTargetLink.getSplitReads());
+        return builder.make();
     }
 
     public static List<VariantContext> annotateBreakpointBasedCallsWithImpreciseEvidenceLinks(final List<VariantContext> assemblyDiscoveredVariants,
@@ -163,44 +150,6 @@ public class AnnotatedVariantProducer implements Serializable {
     }
 
     //==================================================================================================================
-
-    // some concepts are applicable to BND or symbolic simple variants only
-    private static VariantContextBuilder getBasicInformation(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype,
-                                                             final SvType inferredType,
-                                                             final Broadcast<ReferenceMultiSource> broadcastReference,
-                                                             final Broadcast<SAMSequenceDictionary> broadcastSequenceDictionary,
-                                                             final Broadcast<SVIntervalTree<VariantContext>> broadcastCNVCalls,
-                                                             final String sampleId) throws IOException {
-        if ( inferredType instanceof BreakEndVariantType ) {
-            final BreakEndVariantType breakEnd = (BreakEndVariantType) inferredType;
-            final SimpleInterval refLoc = breakEnd.isTheUpstreamMate() ? novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc()
-                                                                       : novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc();
-            return new VariantContextBuilder()
-                    .chr(refLoc.getContig()).start(refLoc.getStart()).stop(refLoc.getEnd())// BND formatted variant shouldn't have END, this is just for having a valid "stop" for VC
-                    .alleles(produceAlleles(refLoc, broadcastReference.getValue(), inferredType));
-        } else {
-            final SimpleInterval refLoc = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc();
-            // the following is to protect against RPL produced insertions and duplications
-            final int applicableStop;
-            if (inferredType instanceof SimpleSVType.Deletion || inferredType instanceof SimpleSVType.Inversion
-                    || (inferredType instanceof SimpleSVType.Insertion && novelAdjacencyAndAltHaplotype.getDistanceBetweenNovelAdjacencies() < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND)) {
-                applicableStop = novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getEnd();
-            } else {
-                applicableStop = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getEnd();
-            }
-            final VariantContextBuilder vcBuilder = new VariantContextBuilder()
-                    .chr(refLoc.getContig()).start(refLoc.getStart()).stop(applicableStop)
-                    .alleles(produceAlleles(refLoc, broadcastReference.getValue(), inferredType))
-                    .attribute(VCFConstants.END_KEY, applicableStop)
-                    .attribute(GATKSVVCFConstants.SVLEN, inferredType.getSVLength());
-
-            final byte[] altHaplotypeSequence = novelAdjacencyAndAltHaplotype.getAltHaplotypeSequence();
-            if (altHaplotypeSequence != null && altHaplotypeSequence.length != 0)
-                vcBuilder.attribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE, StringUtil.bytesToString(altHaplotypeSequence));
-            return annotateWithExternalCNVCalls(refLoc.getContig(), refLoc.getStart(), applicableStop, vcBuilder,
-                    broadcastSequenceDictionary, broadcastCNVCalls, sampleId);
-        }
-    }
 
     /**
      * Utility structs for extraction information from the consensus NovelAdjacencyAndAltHaplotype out of multiple ChimericAlignments,
@@ -329,21 +278,5 @@ public class AnnotatedVariantProducer implements Serializable {
         return String.join(",",
                 String.valueOf(ciInterval.getStart() - point),
                 String.valueOf(ciInterval.getEnd() - point));
-    }
-
-    //==================================================================================================================
-
-    @VisibleForTesting
-    static List<Allele> produceAlleles(final SimpleInterval refLoc, final ReferenceMultiSource reference, final SvType svType)
-            throws IOException {
-
-        final byte[] refBases = reference.getReferenceBases(refLoc).getBases();
-
-        return produceAlleles(refBases, svType);
-    }
-
-    // for convenience
-    public static List<Allele> produceAlleles(final byte[] refBases, final SvType svType) {
-        return new ArrayList<>(Arrays.asList(Allele.create(new String(refBases), true), svType.getAltAllele()));
     }
 }

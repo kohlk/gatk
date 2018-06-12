@@ -214,6 +214,18 @@ public class NovelAdjacencyAndAltHaplotype {
     }
 
     /**
+     * Return the interval being replaced, anchored 1 bp from left,
+     * i.e.
+     * if [2,30] is being replaced, this would return [1,30]
+     */
+    public SimpleInterval getIntervalForFatInsertion() {
+        if (isCandidateForFatInsertion()) {
+            return new SimpleInterval(leftJustifiedLeftRefLoc.getContig(), leftJustifiedLeftRefLoc.getStart(), leftJustifiedRightRefLoc.getEnd());
+        } else
+            throw new UnsupportedOperationException("trying to get interval from a novel adjacency that is no a fat insertion: " + toString());
+    }
+
+    /**
      * @return the inferred type could be
      *          1) a single entry for simple variants, or
      *          2) a list of two entries for "replacement" case where the ref- and alt- path are both >=
@@ -243,10 +255,7 @@ public class NovelAdjacencyAndAltHaplotype {
             case INTRA_CHR_STRAND_SWITCH_55:
             case INTRA_CHR_STRAND_SWITCH_33:
                 if ( complication.hasDuplicationAnnotation() ) { // inverted duplication
-                    final int svLength =
-                            ((BreakpointComplications.InvertedDuplicationBreakpointComplications) this.getComplication())
-                                    .getDupSeqRepeatUnitRefSpan().size();
-                    return Collections.singletonList( new SimpleSVType.DuplicationInverted(this, svLength) );
+                    return Collections.singletonList( new SimpleSVType.DuplicationInverted(this, reference) );
                 } else {
                     if (strandSwitch.equals(StrandSwitch.FORWARD_TO_REVERSE)) {
                         final Tuple2<BreakEndVariantType, BreakEndVariantType> orderedMatesForInversionSuspect =
@@ -259,46 +268,38 @@ public class NovelAdjacencyAndAltHaplotype {
                     }
                 }
             case SIMPLE_DEL:
+            case DEL_DUP_CONTRACTION:
             {
-                final int svLength = leftJustifiedLeftRefLoc.getEnd() - leftJustifiedRightRefLoc.getStart();
-                return Collections.singletonList( new SimpleSVType.Deletion(this, svLength) );
+                return Collections.singletonList( new SimpleSVType.Deletion(this, reference) );
             }
             case RPL:
             {
-                final int deletedLength = leftJustifiedRightRefLoc.getStart() - leftJustifiedLeftRefLoc.getEnd();
-                final int insertionLength = complication.getInsertedSequenceForwardStrandRep().length();
                 if ( isCandidateForFatInsertion() ) {
-                    return Collections.singletonList( new SimpleSVType.Insertion(this, insertionLength) );
+                    return Collections.singletonList( new SimpleSVType.Insertion(this, reference) );
                 } else { // "DEL" record with possibly linked "INS"
-                    final SimpleSVType.Deletion deletion = new SimpleSVType.Deletion(this, - deletedLength);
-                    if ( insertionLength < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND ){ // ins seq not long enough for an INS call
+                    final SimpleSVType.Deletion deletion = new SimpleSVType.Deletion(this, reference);
+                    if ( complication.getInsertedSequenceForwardStrandRep().length() < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND ){ // ins seq not long enough for an INS call
                         return Collections.singletonList( deletion );
                     } else {
-                        final SimpleSVType.Insertion insertion = new SimpleSVType.Insertion(this, insertionLength);
+                        final SimpleSVType.Insertion insertion = new SimpleSVType.Insertion(this, reference);
                         return Arrays.asList( deletion, insertion );
                     }
                 }
             }
             case SIMPLE_INS:
             {
-                final int svLength = this.getComplication().getInsertedSequenceForwardStrandRep().length();
-                return Collections.singletonList( new SimpleSVType.Insertion(this, svLength) );
+                return Collections.singletonList( new SimpleSVType.Insertion(this, reference) );
             }
             case SMALL_DUP_EXPANSION:
             {
-                final int svLength = getLengthForDupTandem();
+                // check if duplicated region is large enough to make an DUP call, if not, emit annotated INS call
                 final BreakpointComplications.SmallDuplicationWithPreciseDupRangeBreakpointComplications duplicationComplication =
                         (BreakpointComplications.SmallDuplicationWithPreciseDupRangeBreakpointComplications) this.getComplication();
                 if (duplicationComplication.getDupSeqRepeatUnitRefSpan().size() < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND) {
-                    return Collections.singletonList( new SimpleSVType.Insertion(this, svLength));
+                    return Collections.singletonList( new SimpleSVType.Insertion(this, reference));
                 } else {
-                    return Collections.singletonList( new SimpleSVType.DuplicationTandem(this, svLength) );
+                    return Collections.singletonList( new SimpleSVType.DuplicationTandem(this, reference) );
                 }
-            }
-            case DEL_DUP_CONTRACTION:
-            {
-                final int svLength = leftJustifiedLeftRefLoc.getEnd() - leftJustifiedRightRefLoc.getStart();
-                return Collections.singletonList( new SimpleSVType.Deletion(this, svLength) );
             }
             case SMALL_DUP_CPX:
             {
@@ -306,14 +307,12 @@ public class NovelAdjacencyAndAltHaplotype {
                         (BreakpointComplications.SmallDuplicationWithImpreciseDupRangeBreakpointComplications)
                         this.getComplication();
                 if ( duplicationComplication.isDupContraction() ) {
-                    final int svLength = leftJustifiedLeftRefLoc.getEnd() - leftJustifiedRightRefLoc.getStart();
-                    return Collections.singletonList( new SimpleSVType.Deletion(this, svLength) );
+                    return Collections.singletonList( new SimpleSVType.Deletion(this, reference) );
                 } else {
-                    final int svLength = getLengthForDupTandem();
                     if (duplicationComplication.getDupSeqRepeatUnitRefSpan().size() < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND) {
-                        return Collections.singletonList( new SimpleSVType.Insertion(this, svLength));
+                        return Collections.singletonList( new SimpleSVType.Insertion(this, reference));
                     } else {
-                        return Collections.singletonList( new SimpleSVType.DuplicationTandem(this, svLength) );
+                        return Collections.singletonList( new SimpleSVType.DuplicationTandem(this, reference) );
                     }
                 }
             }
@@ -326,14 +325,16 @@ public class NovelAdjacencyAndAltHaplotype {
      * <ul>
      *     <li>the new copies' length + inserted sequence length for simple expansion</li>
      *     <li>for complex expansion: the difference between affected reference region's size and the alt haplotype's length</li>
-     *     <li>-1 otherwise</li>
+     *     <li>throws UnsupportedOperationException otherwise</li>
      * </ul>
      */
-    public int getLengthForDupTandem() {
+    public int getLengthForDupTandemExpansion() {
         // TODO: 6/11/18 the implementation taken below simply performs: inserted sequence length + copy number elevation * copy unit length,
         // which could be wrong when the expansion is complex, or when the copies are different in length due to small insertion and deletions in those copies
         // a better implementation is to simply calculate the difference in length in altseq and ref region size
         final BreakpointComplications.SmallDuplicationBreakpointComplications dupComplication = (BreakpointComplications.SmallDuplicationBreakpointComplications) getComplication();
+        if (dupComplication.isDupContraction())
+            throw new UnsupportedOperationException("Trying to extract length from a duplication contraction: " + this.toString());
         return dupComplication.getInsertedSequenceForwardStrandRep().length()
                 + (dupComplication.getDupSeqRepeatNumOnCtg() - dupComplication.getDupSeqRepeatNumOnRef()) * dupComplication.getDupSeqRepeatUnitRefSpan().size();
     }

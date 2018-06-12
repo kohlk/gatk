@@ -82,7 +82,7 @@ public class AnnotatedVariantProducerUnitTest extends GATKBaseTest {
                                             final Broadcast<SAMSequenceDictionary> broadcastSequenceDictionary,
                                             final String sampleId,
                                             final String linkKey,
-                                            final List<VariantContext> expectedVariants) throws IOException {
+                                            final List<VariantContext> expectedVariants) {
         if (inferredTypes.size() == 1) {
             VariantContextTestUtils.assertVariantContextsAreEqual(produceAnnotatedVcFromAssemblyEvidence(inferredTypes.get(0), novelAdjacencyAndAssemblyEvidence, broadcastReference, broadcastSequenceDictionary, null, sampleId).make(),
                     expectedVariants.get(0), Arrays.asList(CONTIG_NAMES, HQ_MAPPINGS)); // these two are omitted because: 1) HQ_MAPPINGS equal testing code is wrong (saying "1"!=1), 2)CONTIG_NAMES will be tested in another test
@@ -96,7 +96,7 @@ public class AnnotatedVariantProducerUnitTest extends GATKBaseTest {
     }
 
     @Test(groups = "sv")
-    public void testMiscCases() throws IOException {
+    public void testMiscCases() {
         final JavaSparkContext testSparkContext = SparkContextFactory.getTestSparkContext();
         Broadcast<ReferenceMultiSource> referenceBroadcast = testSparkContext.broadcast(TestUtilsForAssemblyBasedSVDiscovery.b38_reference_chr20_chr21);
         Broadcast<SAMSequenceDictionary> refSeqDictBroadcast = testSparkContext.broadcast(TestUtilsForAssemblyBasedSVDiscovery.b38_seqDict_chr20_chr21);
@@ -120,9 +120,10 @@ public class AnnotatedVariantProducerUnitTest extends GATKBaseTest {
         BreakpointComplications complications = new BreakpointComplications.SimpleInsDelOrReplacementBreakpointComplications("", "TTATCTGCATGTATGTAG");
         NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype = new NovelAdjacencyAndAltHaplotype(leftBreakpoint, rightBreakpoint, StrandSwitch.NO_SWITCH, complications, TypeInferredFromSimpleChimera.RPL, "TTATCTGCATGTATGTAG".getBytes());
         SimpleNovelAdjacencyAndChimericAlignmentEvidence simpleNovelAdjacencyAndChimericAlignmentEvidence = new SimpleNovelAdjacencyAndChimericAlignmentEvidence(novelAdjacencyAndAltHaplotype, simpleChimeras);
-        final SimpleSVType.Deletion del_chr20_28831535_29212083 = new SimpleSVType.Deletion("DEL_chr20_28831535_29212083", Allele.create("<DEL>"), -380548, Collections.emptyMap());
+        Allele refAllele = Allele.create("G", true);
+        final SimpleSVType.Deletion del_chr20_28831535_29212083 = new SimpleSVType.Deletion("chr20", 28831535, 29212083, "DEL_chr20_28831535_29212083", refAllele, Allele.create("<DEL>"), -380548, Collections.emptyMap());
         VariantContext expected = new VariantContextBuilder().chr("chr20").start(28831535).stop(29212083).id("DEL_chr20_28831535_29212083")
-                .alleles(Arrays.asList(Allele.create("G", true), Allele.create("<DEL>")))
+                .alleles(Arrays.asList(refAllele, Allele.create("<DEL>")))
                 .attribute(VCFConstants.END_KEY, 29212083).attribute(SVLEN, -380548).attribute(SVTYPE, "DEL").attribute(CONTIG_NAMES, "asm018485:tig00004,asm028167:tig00007")
                 .attribute(TOTAL_MAPPINGS, 2).attribute(HQ_MAPPINGS, 0).attribute(MAPPING_QUALITIES, "38,21").attribute(ALIGN_LENGTHS, "71,71").attribute(MAX_ALIGN_LENGTH, 71)
                 .attribute(SEQ_ALT_HAPLOTYPE, "TTATCTGCATGTATGTAG").attribute(INSERTED_SEQUENCE, "TTATCTGCATGTATGTAG").attribute(INSERTED_SEQUENCE_LENGTH, 18)
@@ -153,9 +154,9 @@ public class AnnotatedVariantProducerUnitTest extends GATKBaseTest {
         complications = new BreakpointComplications.SimpleInsDelOrReplacementBreakpointComplications("GAGGAA", "");
         novelAdjacencyAndAltHaplotype = new NovelAdjacencyAndAltHaplotype(leftBreakpoint, rightBreakpoint, StrandSwitch.NO_SWITCH, complications, TypeInferredFromSimpleChimera.SIMPLE_DEL, new byte[]{});
         simpleNovelAdjacencyAndChimericAlignmentEvidence = new SimpleNovelAdjacencyAndChimericAlignmentEvidence(novelAdjacencyAndAltHaplotype, simpleChimeras);
-        final SimpleSVType.Deletion del_21_43350116_43353485 = new SimpleSVType.Deletion("DEL_21_43350116_43353485", Allele.create("<DEL>"), -3369, Collections.emptyMap());
+        final SimpleSVType.Deletion del_21_43350116_43353485 = new SimpleSVType.Deletion("21", 43350116, 43353485, "DEL_21_43350116_43353485", refAllele, Allele.create("<DEL>"), -3369, Collections.emptyMap());
         expected = new VariantContextBuilder().chr("21").start(43350116).stop(43353485).id("DEL_21_43350116_43353485")
-                .alleles(Arrays.asList(Allele.create("G", true), Allele.create("<DEL>"))).attribute(VCFConstants.END_KEY, 43353485)
+                .alleles(Arrays.asList(refAllele, Allele.create("<DEL>"))).attribute(VCFConstants.END_KEY, 43353485)
                 .attribute(SVLEN, -3369).attribute(SVTYPE, "DEL").attribute(CONTIG_NAMES, "asm000000:tig00006,asm000001:tig00001").attribute(TOTAL_MAPPINGS, 2)
                 .attribute(HQ_MAPPINGS, 2).attribute(MAPPING_QUALITIES, "60,60").attribute(ALIGN_LENGTHS, "229,417").attribute(MAX_ALIGN_LENGTH, 417).attribute(HOMOLOGY, "GAGGAA")
                 .attribute(HOMOLOGY_LENGTH, 6).attribute(EXTERNAL_CNV_CALLS, "CNV_21_43350200_43353400:1:80").make();

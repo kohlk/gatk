@@ -27,9 +27,10 @@ public abstract class BreakEndVariantType extends SvType {
      */
     private final boolean isTheUpstreamMate;
 
-    private BreakEndVariantType(final String id, final Allele altAllele, final boolean isTheUpstreamMate,
-                                final Map<String, String> typeSpecificExtraAttributes) {
-        super(id, altAllele, SVContext.NO_LENGTH, typeSpecificExtraAttributes);
+    protected BreakEndVariantType(final String variantCHR, final int variantPOS, final String variantId,
+                                  final Allele refAllele, final Allele altAllele, final Map<String, Object> extraAttributes,
+                                  final boolean isTheUpstreamMate) {
+        super(variantCHR, variantPOS, NO_APPLICABLE_END, variantId, refAllele, altAllele, NO_APPLICABLE_LEN, extraAttributes);
         this.isTheUpstreamMate = isTheUpstreamMate;
     }
 
@@ -107,12 +108,14 @@ public abstract class BreakEndVariantType extends SvType {
      * Note that dispersed duplication with some copies inverted could also lead to breakpoints with strand switch.
      */
     abstract private static class IntraChromosomalStrandSwitchBreakEnd extends BreakEndVariantType {
-        static final Map<String, String> INV55_FLAG = Collections.singletonMap(INV55, "");
-        static final Map<String, String> INV33_FLAG = Collections.singletonMap(INV33, "");
+        static final Map<String, Object> INV55_FLAG = Collections.singletonMap(INV55, true);
+        static final Map<String, Object> INV33_FLAG = Collections.singletonMap(INV33, true);
 
-        private IntraChromosomalStrandSwitchBreakEnd(final String id, final Allele altAllele, final boolean isTheUpstreamMate,
-                                                     final Map<String, String> typeSpecificExtraAttributes) {
-            super(id, altAllele, isTheUpstreamMate, typeSpecificExtraAttributes);
+        private IntraChromosomalStrandSwitchBreakEnd(final String variantCHR, final int variantPOS, final String variantId,
+                                                     final Allele refAllele, final Allele altAllele,
+                                                     final Map<String, Object> extraAttributes,
+                                                     final boolean isTheUpstreamMate) {
+            super(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
         }
 
         @VisibleForTesting
@@ -129,18 +132,23 @@ public abstract class BreakEndVariantType extends SvType {
     public static final class IntraChromosomalStrandSwitch55BreakEnd extends IntraChromosomalStrandSwitchBreakEnd {
 
         @VisibleForTesting
-        public IntraChromosomalStrandSwitch55BreakEnd(final String id, final Allele altAllele, final boolean isTheUpstreamMate) {
-            super(id, altAllele, isTheUpstreamMate, INV55_FLAG);
+        public IntraChromosomalStrandSwitch55BreakEnd(final String variantCHR, final int variantPOS, final String variantId,
+                                                      final Allele refAllele, final Allele altAllele, final Map<String, Object> extraAttributes,
+                                                      final boolean isTheUpstreamMate) {
+            super(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
         }
 
         private IntraChromosomalStrandSwitch55BreakEnd(final NovelAdjacencyAndAltHaplotype narl,
                                                        final ReferenceMultiSource reference,
                                                        final boolean isTheUpstreamMate) {
-            super(BreakEndVariantType.getIDString(narl, isTheUpstreamMate),
+            super(isTheUpstreamMate ? narl.getLeftJustifiedLeftRefLoc().getContig() : narl.getLeftJustifiedRightRefLoc().getContig(),
+                    isTheUpstreamMate ? narl.getLeftJustifiedLeftRefLoc().getStart() : narl.getLeftJustifiedRightRefLoc().getEnd(),
+                    BreakEndVariantType.getIDString(narl, isTheUpstreamMate),
+                    Allele.create(BreakEndVariantType.getRefBaseString(narl, isTheUpstreamMate, reference), true),
                     constructAltAllele(BreakEndVariantType.getRefBaseString(narl, isTheUpstreamMate, reference),
-                                       extractInsertedSequence(narl, isTheUpstreamMate),
-                                        isTheUpstreamMate ? narl.getLeftJustifiedRightRefLoc(): narl.getLeftJustifiedLeftRefLoc()),
-                    isTheUpstreamMate, INV55_FLAG);
+                            extractInsertedSequence(narl, isTheUpstreamMate),
+                            isTheUpstreamMate ? narl.getLeftJustifiedRightRefLoc(): narl.getLeftJustifiedLeftRefLoc()),
+                    INV55_FLAG, isTheUpstreamMate);
         }
 
         public static Tuple2<BreakEndVariantType, BreakEndVariantType> getOrderedMates(final NovelAdjacencyAndAltHaplotype narl,
@@ -157,17 +165,22 @@ public abstract class BreakEndVariantType extends SvType {
     public static final class IntraChromosomalStrandSwitch33BreakEnd extends IntraChromosomalStrandSwitchBreakEnd {
 
         @VisibleForTesting
-        public IntraChromosomalStrandSwitch33BreakEnd(final String id, final Allele altAllele, final boolean isTheUpstreamMate) {
-            super(id, altAllele, isTheUpstreamMate, INV33_FLAG);
+        public IntraChromosomalStrandSwitch33BreakEnd(final String variantCHR, final int variantPOS, final String variantId,
+                                                      final Allele refAllele, final Allele altAllele, final Map<String, Object> extraAttributes,
+                                                      final boolean isTheUpstreamMate) {
+            super(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
         }
 
         private IntraChromosomalStrandSwitch33BreakEnd(final NovelAdjacencyAndAltHaplotype narl, final ReferenceMultiSource reference,
                                                        final boolean isTheUpstreamMate) {
-            super(BreakEndVariantType.getIDString(narl, isTheUpstreamMate),
+            super(isTheUpstreamMate ? narl.getLeftJustifiedLeftRefLoc().getContig() : narl.getLeftJustifiedRightRefLoc().getContig(),
+                    isTheUpstreamMate ? narl.getLeftJustifiedLeftRefLoc().getStart() : narl.getLeftJustifiedRightRefLoc().getEnd(),
+                    BreakEndVariantType.getIDString(narl, isTheUpstreamMate),
+                    Allele.create(BreakEndVariantType.getRefBaseString(narl, isTheUpstreamMate, reference), true),
                     constructAltAllele(BreakEndVariantType.getRefBaseString(narl, isTheUpstreamMate, reference),
                             extractInsertedSequence(narl, isTheUpstreamMate),
                             isTheUpstreamMate ? narl.getLeftJustifiedRightRefLoc(): narl.getLeftJustifiedLeftRefLoc()),
-                    isTheUpstreamMate, INV33_FLAG);
+                    INV33_FLAG, isTheUpstreamMate);
         }
 
         public static Tuple2<BreakEndVariantType, BreakEndVariantType> getOrderedMates(final NovelAdjacencyAndAltHaplotype narl,
@@ -184,18 +197,23 @@ public abstract class BreakEndVariantType extends SvType {
     public static final class IntraChromosomeRefOrderSwap extends BreakEndVariantType {
 
         @VisibleForTesting
-        public IntraChromosomeRefOrderSwap(final String id, final Allele altAllele, final boolean isTheUpstreamMate) {
-            super(id, altAllele, isTheUpstreamMate, noExtraAttributes);
+        public IntraChromosomeRefOrderSwap(final String variantCHR, final int variantPOS, final String variantId,
+                                           final Allele refAllele, final Allele altAllele, final Map<String, Object> extraAttributes,
+                                           final boolean isTheUpstreamMate) {
+            super(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
         }
 
         private IntraChromosomeRefOrderSwap(final NovelAdjacencyAndAltHaplotype narl, final ReferenceMultiSource reference,
                                             final boolean isTheUpstreamMate) {
-            super(BreakEndVariantType.getIDString(narl, isTheUpstreamMate),
+            super(isTheUpstreamMate ? narl.getLeftJustifiedLeftRefLoc().getContig() : narl.getLeftJustifiedRightRefLoc().getContig(),
+                    isTheUpstreamMate ? narl.getLeftJustifiedLeftRefLoc().getStart() : narl.getLeftJustifiedRightRefLoc().getEnd(),
+                    BreakEndVariantType.getIDString(narl, isTheUpstreamMate),
+                    Allele.create(BreakEndVariantType.getRefBaseString(narl, isTheUpstreamMate, reference), true),
                     constructAltAllele(BreakEndVariantType.getRefBaseString(narl, isTheUpstreamMate, reference),
                             narl.getComplication().getInsertedSequenceForwardStrandRep(),
                             isTheUpstreamMate ? narl.getLeftJustifiedRightRefLoc(): narl.getLeftJustifiedLeftRefLoc(),
                             isTheUpstreamMate),
-                    isTheUpstreamMate, noExtraAttributes);
+                    noExtraAttributes, isTheUpstreamMate);
         }
 
         public static Tuple2<BreakEndVariantType, BreakEndVariantType> getOrderedMates(final NovelAdjacencyAndAltHaplotype narl,
@@ -217,15 +235,20 @@ public abstract class BreakEndVariantType extends SvType {
     public static final class InterChromosomeBreakend extends BreakEndVariantType {
 
         @VisibleForTesting
-        public InterChromosomeBreakend(final String id, final Allele altAllele, final boolean isTheUpstreamMate) {
-            super(id, altAllele, isTheUpstreamMate, noExtraAttributes);
+        public InterChromosomeBreakend(final String variantCHR, final int variantPOS, final String variantId,
+                                       final Allele refAllele, final Allele altAllele, final Map<String, Object> extraAttributes,
+                                       final boolean isTheUpstreamMate) {
+            super(variantCHR, variantPOS, variantId, refAllele, altAllele, extraAttributes, isTheUpstreamMate);
         }
 
         private InterChromosomeBreakend(final NovelAdjacencyAndAltHaplotype narl, final ReferenceMultiSource reference,
                                         final boolean isTheUpstreamMate) {
-            super(BreakEndVariantType.getIDString(narl, isTheUpstreamMate),
+            super(isTheUpstreamMate ? narl.getLeftJustifiedLeftRefLoc().getContig() : narl.getLeftJustifiedRightRefLoc().getContig(),
+                    isTheUpstreamMate ? narl.getLeftJustifiedLeftRefLoc().getStart() : narl.getLeftJustifiedRightRefLoc().getEnd(),
+                    BreakEndVariantType.getIDString(narl, isTheUpstreamMate),
+                    Allele.create(BreakEndVariantType.getRefBaseString(narl, isTheUpstreamMate, reference), true),
                     constructAltAllele(narl, reference, isTheUpstreamMate),
-                    isTheUpstreamMate, noExtraAttributes);
+                    noExtraAttributes, isTheUpstreamMate);
         }
 
         public static Tuple2<BreakEndVariantType, BreakEndVariantType> getOrderedMates(final NovelAdjacencyAndAltHaplotype narl,

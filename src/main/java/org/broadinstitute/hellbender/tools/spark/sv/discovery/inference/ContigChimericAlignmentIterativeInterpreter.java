@@ -85,7 +85,7 @@ public class ContigChimericAlignmentIterativeInterpreter {
                     referenceSequenceDictionaryBroadcast.getValue(), discoverStageArgs, toolLogger);
 
             return narlsAndSources
-                            .mapToPair(noveltyAndEvidence -> new Tuple2<>(inferSimpleTypeFromNovelAdjacency(noveltyAndEvidence._1),       // type inference based on novel adjacency and evidence alignments
+                            .mapToPair(noveltyAndEvidence -> new Tuple2<>(inferSimpleTypeFromNovelAdjacency(noveltyAndEvidence._1, referenceBroadcast.getValue()),       // type inference based on novel adjacency and evidence alignments
                                     new SimpleNovelAdjacencyAndChimericAlignmentEvidence(noveltyAndEvidence._1, noveltyAndEvidence._2)))
                             .map(noveltyTypeAndEvidence ->
                                     AnnotatedVariantProducer
@@ -208,7 +208,8 @@ public class ContigChimericAlignmentIterativeInterpreter {
     // =================================================================================================================
 
     @VisibleForTesting
-    public static SimpleSVType inferSimpleTypeFromNovelAdjacency(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype) {
+    public static SimpleSVType inferSimpleTypeFromNovelAdjacency(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype,
+                                                                 final ReferenceMultiSource reference) {
 
         final int start = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getEnd();
         final int end = novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getStart();
@@ -224,25 +225,21 @@ public class ContigChimericAlignmentIterativeInterpreter {
                         throw new GATKException("Something went wrong in type inference, there's suspected insertion happening but no inserted sequence could be inferred "
                                 + novelAdjacencyAndAltHaplotype.toString());
                     } else {
-                        final int svLength = novelAdjacencyAndAltHaplotype.getComplication().getInsertedSequenceForwardStrandRep().length();
-                        type = new SimpleSVType.Insertion(novelAdjacencyAndAltHaplotype, svLength); // simple insertion (no duplication)
+                        type = new SimpleSVType.Insertion(novelAdjacencyAndAltHaplotype, reference); // simple insertion (no duplication)
                     }
                 } else {
-                    final int svLength = novelAdjacencyAndAltHaplotype.getLengthForDupTandem();
-                    type = new SimpleSVType.DuplicationTandem(novelAdjacencyAndAltHaplotype, svLength);
+                    type = new SimpleSVType.DuplicationTandem(novelAdjacencyAndAltHaplotype, reference);
                 }
             } else {
-                final int svLength = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getEnd() -
-                        novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getStart();
                 if (hasNoDupSeq) {
                     if (hasNoInsertedSeq) {
-                        type = new SimpleSVType.Deletion(novelAdjacencyAndAltHaplotype, svLength); // clean deletion
+                        type = new SimpleSVType.Deletion(novelAdjacencyAndAltHaplotype, reference); // clean deletion
                     } else {
-                        type = new SimpleSVType.Deletion(novelAdjacencyAndAltHaplotype, svLength); // scarred deletion
+                        type = new SimpleSVType.Deletion(novelAdjacencyAndAltHaplotype, reference); // scarred deletion
                     }
                 } else {
                     if (hasNoInsertedSeq) {
-                        type = new SimpleSVType.Deletion(novelAdjacencyAndAltHaplotype, svLength); // clean contraction of repeat 2 -> 1, or complex contraction
+                        type = new SimpleSVType.Deletion(novelAdjacencyAndAltHaplotype, reference); // clean contraction of repeat 2 -> 1, or complex contraction
                     } else {
                         throw new GATKException("Something went wrong in novel adjacency interpretation: " +
                                 " inferring simple SV type from a novel adjacency between two different reference locations, but annotated with both inserted sequence and duplication, which is NOT simple.\n"
@@ -253,7 +250,7 @@ public class ContigChimericAlignmentIterativeInterpreter {
         } else {
             final int svLength = novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getStart() -
                     novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getEnd();
-            type = new SimpleSVType.Inversion(novelAdjacencyAndAltHaplotype, svLength);
+            type = new SimpleSVType.Inversion(novelAdjacencyAndAltHaplotype, svLength, reference);
         }
 
         return type;

@@ -163,43 +163,28 @@ public final class SimpleNovelAdjacencyInterpreter {
                                                                     final String sampleId,
                                                                     final Broadcast<ReferenceMultiSource> referenceBroadcast,
                                                                     final Broadcast<SAMSequenceDictionary> referenceSequenceDictionaryBroadcast,
-                                                                    final Broadcast<SVIntervalTree<VariantContext>> cnvCallsBroadcast)
-            throws IOException {
+                                                                    final Broadcast<SVIntervalTree<VariantContext>> cnvCallsBroadcast) {
         final SimpleNovelAdjacencyAndChimericAlignmentEvidence simpleNovelAdjacencyAndChimericAlignmentEvidence = pair._1;
         final List<SvType> svTypes = pair._2;
         if( svTypes.isEmpty() || svTypes.size() > 2 ) {
             throw new GATKException("Wrong number of variants sent for analysis: " + pair._2.toString() +
                     "\nWe currently only support 1 (symbolic simple or CPX) or 2 (BND mate pairs) variants for producing annotated variants.");
         }
-        if ( ! (svTypes.get(0) instanceof BreakEndVariantType) ) { // simple SV type
-
-            if ( svTypes.size() == 2 ) { // RPL case with both path >= 50 bp
-                final SvType firstVar = svTypes.get(0);
-                final SvType secondVar = svTypes.get(1);
-                final Tuple2<SvType, SvType> linkedVariants = new Tuple2<>(firstVar, secondVar);
-                return AnnotatedVariantProducer.produceLinkedAssemblyBasedVariants(linkedVariants,
-                        simpleNovelAdjacencyAndChimericAlignmentEvidence,
-                        referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId,
-                        GATKSVVCFConstants.LINK).iterator();
-            } else {
-                final SvType inferredType = svTypes.get(0);
-
-                final VariantContext variantContext = AnnotatedVariantProducer
-                        .produceAnnotatedVcFromAssemblyEvidence(
-                                inferredType, simpleNovelAdjacencyAndChimericAlignmentEvidence,
-                                referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId).make();
-                return Collections.singletonList(variantContext).iterator();
-            }
-        } else { // BND mate pair
-            final BreakEndVariantType firstMate = (BreakEndVariantType) svTypes.get(0);
-            final BreakEndVariantType secondMate = (BreakEndVariantType) svTypes.get(1);
-
-            final Tuple2<SvType, SvType> bndMates = new Tuple2<>(firstMate, secondMate);
-            final List<VariantContext> variantContexts = AnnotatedVariantProducer.produceLinkedAssemblyBasedVariants(
-                            bndMates, simpleNovelAdjacencyAndChimericAlignmentEvidence,
-                            referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId,
-                            GATKSVVCFConstants.BND_MATEID_STR);
-            return variantContexts.iterator();
+        if (svTypes.size() == 2) {
+            final SvType firstVar = svTypes.get(0);
+            final SvType secondVar = svTypes.get(1);
+            final String linkKey = firstVar instanceof BreakEndVariantType ? GATKSVVCFConstants.BND_MATEID_STR : GATKSVVCFConstants.LINK;
+            final Tuple2<SvType, SvType> linkedVariants = new Tuple2<>(firstVar, secondVar);
+            return AnnotatedVariantProducer.produceLinkedAssemblyBasedVariants(linkedVariants,
+                    simpleNovelAdjacencyAndChimericAlignmentEvidence,
+                    referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId,
+                    linkKey).iterator();
+        } else {
+            final VariantContext variantContext = AnnotatedVariantProducer
+                    .produceAnnotatedVcFromAssemblyEvidence(
+                            svTypes.get(0), simpleNovelAdjacencyAndChimericAlignmentEvidence,
+                            referenceBroadcast, referenceSequenceDictionaryBroadcast, cnvCallsBroadcast, sampleId).make();
+            return Collections.singletonList(variantContext).iterator();
         }
     }
 

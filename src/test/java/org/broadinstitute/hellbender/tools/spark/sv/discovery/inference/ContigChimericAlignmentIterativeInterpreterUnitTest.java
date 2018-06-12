@@ -3,6 +3,7 @@ package org.broadinstitute.hellbender.tools.spark.sv.discovery.inference;
 import com.google.common.collect.ImmutableSet;
 import htsjdk.samtools.TextCigarCodec;
 import org.broadinstitute.hellbender.GATKBaseTest;
+import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
 import org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.SvType;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.TestUtilsForAssemblyBasedSVDiscovery;
@@ -56,53 +57,55 @@ public class ContigChimericAlignmentIterativeInterpreterUnitTest extends GATKBas
     // -----------------------------------------------------------------------------------------------
     @DataProvider
     private Object[][] forInferSimpleTypeFromNovelAdjacency() {
+        final ReferenceMultiSource referenceMultiSource = TestUtilsForAssemblyBasedSVDiscovery.b37_reference;
         final List<Object[]> data = new ArrayList<>(20);
         // inversion
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.forSimpleInversionWithHomology_RightBreakpoint_minus.expectedNovelAdjacencyAndAltSeq, INV.name(), ImmutableSet.of(INV33)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.forSimpleInversionWithHomology_RightBreakpoint_minus.expectedNovelAdjacencyAndAltSeq, INV.name(), ImmutableSet.of(INV33), referenceMultiSource});
 
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.forSimpleInversionWithHom_leftPlus.expectedNovelAdjacencyAndAltSeq, INV.name(), ImmutableSet.of(INV55)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints.forSimpleInversionWithHom_leftPlus.expectedNovelAdjacencyAndAltSeq, INV.name(), ImmutableSet.of(INV55), referenceMultiSource});
 
         // simple deletion
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleDeletion_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet()});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleDeletion_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet(), referenceMultiSource});
 
         // simple deletion with homology
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forDeletionWithHomology_minus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet()});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forDeletionWithHomology_minus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet(), referenceMultiSource});
 
         // simple insertion
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleInsertion_minus.expectedNovelAdjacencyAndAltSeq, INS.name(), Collections.emptySet()});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleInsertion_minus.expectedNovelAdjacencyAndAltSeq, INS.name(), Collections.emptySet(), referenceMultiSource});
 
         // long range substitution
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forLongRangeSubstitution_fudgedDel_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet()});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forLongRangeSubstitution_fudgedDel_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), Collections.emptySet(), referenceMultiSource});
 
         // simple tandem dup contraction from 2 units to 1 unit
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupContraction_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupContraction_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING), referenceMultiSource});
 
         // simple tandem dup expansion from 1 unit to 2 units
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupExpansion_ins_minus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupExpansion_ins_minus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING), referenceMultiSource});
 
         // simple tandem dup expansion from 1 unit to 2 units and novel insertion
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupExpansionWithNovelIns_dup_plus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forSimpleTanDupExpansionWithNovelIns_dup_plus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING), referenceMultiSource});
 
         // tandem dup expansion from 1 unit to 2 units with pseudo-homology
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_1to2_pseudoHom_minus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_1to2_pseudoHom_minus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING), referenceMultiSource});
 
         // tandem dup contraction from 2 units to 1 unit with pseudo-homology
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_2to1_pseudoHom_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_2to1_pseudoHom_plus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING), referenceMultiSource});
 
         // tandem dup contraction from 3 units to 2 units
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_3to2_noPseudoHom_minus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_3to2_noPseudoHom_minus.expectedNovelAdjacencyAndAltSeq, DEL.name(), ImmutableSet.of(DUP_TAN_CONTRACTION_STRING), referenceMultiSource});
 
         // tandem dup expansion from 2 units to 3 units
-        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_2to3_noPseudoHom_plus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING)});
+        data.add(new Object[]{assemblyBasedSVDiscoveryTestDataProviderForSimpleSV.forComplexTanDup_2to3_noPseudoHom_plus.expectedNovelAdjacencyAndAltSeq, DUP.name(), ImmutableSet.of(DUP_TAN_EXPANSION_STRING), referenceMultiSource});
 
         return data.toArray(new Object[data.size()][]);
     }
     @Test(groups = "sv", dataProvider = "forInferSimpleTypeFromNovelAdjacency")
     public void testInferSimpleTypeFromNovelAdjacency(final NovelAdjacencyAndAltHaplotype biPathBubble,
                                                       final String expectedTypeString,
-                                                      final Set<String> expectedAttributeIDs) {
+                                                      final Set<String> expectedAttributeIDs,
+                                                      final ReferenceMultiSource reference) {
 
-        final SvType variant = ContigChimericAlignmentIterativeInterpreter.inferSimpleTypeFromNovelAdjacency(biPathBubble);
+        final SvType variant = ContigChimericAlignmentIterativeInterpreter.inferSimpleTypeFromNovelAdjacency(biPathBubble, reference);
         Assert.assertEquals(variant.toString(), expectedTypeString);
 
         final Set<String> attributeIDs = variant.getTypeSpecificAttributes().keySet();

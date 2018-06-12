@@ -161,15 +161,15 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints ext
                 StrandSwitch.FORWARD_TO_REVERSE, expectedBreakpointComplications, INTRA_CHR_STRAND_SWITCH_55,  "T".getBytes());
 
         final List<SvType> expectedSVTypes = Arrays.asList(
-                makeBNDType("BND_INV55_21_17069296_17069364_1", Allele.create("AT]21:17069364]"), true, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_55),
-                makeBNDType("BND_INV55_21_17069296_17069364_2", Allele.create("GA]21:17069296]"), false, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_55)
+                makeBNDType("21", 17069296, "BND_INV55_21_17069296_17069364_1", Allele.create("A", true), Allele.create("AT]21:17069364]"), Collections.singletonMap(INV55, true), true, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_55),
+                makeBNDType("21", 17069364, "BND_INV55_21_17069296_17069364_2", Allele.create("G", true), Allele.create("GA]21:17069296]"), Collections.singletonMap(INV55, true), false, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_55)
         );
 
         final VariantContext expectedFirstMate = makeBND(new SimpleInterval("21:17069296-17069296"), new SimpleInterval("21:17069364-17069364"), Allele.create("A", true), "T", INV55, true, true, true)
-                .attribute(INV55, "").attribute(INSERTED_SEQUENCE, "T").attribute(INSERTED_SEQUENCE_LENGTH, 1).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 50).attribute(MAX_ALIGN_LENGTH, 50).attribute(CONTIG_NAMES, contigName)
+                .attribute(INV55, true).attribute(INSERTED_SEQUENCE, "T").attribute(INSERTED_SEQUENCE_LENGTH, 1).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 50).attribute(MAX_ALIGN_LENGTH, 50).attribute(CONTIG_NAMES, contigName)
                 .make();
         final VariantContext expectedSecondMate = makeBND(new SimpleInterval("21:17069296-17069296"), new SimpleInterval("21:17069364-17069364"), Allele.create("G", true), "A", INV55, false, true, true)
-                .attribute(INV55, "").attribute(INSERTED_SEQUENCE, "T").attribute(INSERTED_SEQUENCE_LENGTH, 1).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 50).attribute(MAX_ALIGN_LENGTH, 50).attribute(CONTIG_NAMES, contigName).make();
+                .attribute(INV55, true).attribute(INSERTED_SEQUENCE, "T").attribute(INSERTED_SEQUENCE_LENGTH, 1).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 50).attribute(MAX_ALIGN_LENGTH, 50).attribute(CONTIG_NAMES, contigName).make();
         final List<VariantContext> expectedVariants = Arrays.asList(
                 new VariantContextBuilder(expectedFirstMate).attribute(BND_MATEID_STR, expectedSecondMate.getID()).make(),
                 new VariantContextBuilder(expectedSecondMate).attribute(BND_MATEID_STR, expectedFirstMate.getID()).make()
@@ -196,14 +196,14 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints ext
                 StrandSwitch.REVERSE_TO_FORWARD, expectedBreakpointComplications, TypeInferredFromSimpleChimera.INTRA_CHR_STRAND_SWITCH_33, EMPTY_BYTE_ARRAY);
 
         final List<SvType> expectedSVTypes = Arrays.asList(
-                makeBNDType("BND_INV33_20_20248787_20263493_1", Allele.create("[20:20263493[C"), true, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_33),
-                makeBNDType("BND_INV33_20_20248787_20263493_2", Allele.create("[20:20248787[G"), false, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_33)
+                makeBNDType("20", 20248787, "BND_INV33_20_20248787_20263493_1", Allele.create("C", true), Allele.create("[20:20263493[C"), Collections.singletonMap(INV33, true), true, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_33),
+                makeBNDType("20", 20263493, "BND_INV33_20_20248787_20263493_2", Allele.create("G", true), Allele.create("[20:20248787[G"), Collections.singletonMap(INV33, true), false, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_33)
         );
 
         final VariantContext expectedFirstMate = makeBND(new SimpleInterval("20:20248787-20248787"), new SimpleInterval("20:20263493-20263493"), Allele.create("C", true), "", INV33, true, false, false)
-                .attribute(INV33, "").attribute(HOMOLOGY, homologyForLongContig1).attribute(HOMOLOGY_LENGTH, homologyForLongContig1.length()).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 1951).attribute(MAX_ALIGN_LENGTH, 1951).attribute(CONTIG_NAMES, contigName).make();
+                .attribute(INV33, true).attribute(HOMOLOGY, homologyForLongContig1).attribute(HOMOLOGY_LENGTH, homologyForLongContig1.length()).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 1951).attribute(MAX_ALIGN_LENGTH, 1951).attribute(CONTIG_NAMES, contigName).make();
         final VariantContext expectedSecondMate = makeBND(new SimpleInterval("20:20248787-20248787"), new SimpleInterval("20:20263493-20263493"), Allele.create("G", true), "", INV33, false, false, false)
-                .attribute(INV33, "").attribute(HOMOLOGY, homologyForLongContig1).attribute(HOMOLOGY_LENGTH, homologyForLongContig1.length()).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 1951).attribute(MAX_ALIGN_LENGTH, 1951).attribute(CONTIG_NAMES, contigName).make();
+                .attribute(INV33, true).attribute(HOMOLOGY, homologyForLongContig1).attribute(HOMOLOGY_LENGTH, homologyForLongContig1.length()).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 1951).attribute(MAX_ALIGN_LENGTH, 1951).attribute(CONTIG_NAMES, contigName).make();
 
         final List<VariantContext> expectedVariants = Arrays.asList(
                 new VariantContextBuilder(expectedFirstMate).attribute(BND_MATEID_STR, expectedSecondMate.getID()).make(),
@@ -253,13 +253,13 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints ext
             final BreakpointComplications expectedBreakpointComplications = new BreakpointComplications.IntraChrStrandSwitchBreakpointComplications(leftHomology, "");
             final NovelAdjacencyAndAltHaplotype breakpoints = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, StrandSwitch.FORWARD_TO_REVERSE, expectedBreakpointComplications, INTRA_CHR_STRAND_SWITCH_55, EMPTY_BYTE_ARRAY);
             final List<SvType> expectedSVTypes = Arrays.asList(
-                    makeBNDType("BND_INV55_20_200200_200605_1", Allele.create("C]20:200605]"), true, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_55),
-                    makeBNDType("BND_INV55_20_200200_200605_2", Allele.create("T]20:200200]"), false, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_55)
+                    makeBNDType("20", 200200, "BND_INV55_20_200200_200605_1", Allele.create("C", true), Allele.create("C]20:200605]"), Collections.singletonMap(INV55, true), true, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_55),
+                    makeBNDType("20", 200605, "BND_INV55_20_200200_200605_2", Allele.create("T", true), Allele.create("T]20:200200]"), Collections.singletonMap(INV55, true), false, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_55)
             );
             final VariantContext expectedFirstMate = makeBND(new SimpleInterval("20:200200-200200"), new SimpleInterval("20:200605-200605"), Allele.create("C", true), "", INV55, true, true, true)
-                    .attribute(HOMOLOGY, leftHomology).attribute(HOMOLOGY_LENGTH, leftHomology.length()).attribute(INV55, "").attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 100).attribute(MAX_ALIGN_LENGTH, 100).attribute(CONTIG_NAMES, contigName).make();
+                    .attribute(HOMOLOGY, leftHomology).attribute(HOMOLOGY_LENGTH, leftHomology.length()).attribute(INV55, true).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 100).attribute(MAX_ALIGN_LENGTH, 100).attribute(CONTIG_NAMES, contigName).make();
             final VariantContext expectedSecondMate = makeBND(new SimpleInterval("20:200200-200200"), new SimpleInterval("20:200605-200605"), Allele.create("T", true), "", INV55, false, true, true)
-                    .attribute(HOMOLOGY, leftHomology).attribute(HOMOLOGY_LENGTH, leftHomology.length()).attribute(INV55, "").attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 100).attribute(MAX_ALIGN_LENGTH, 100).attribute(CONTIG_NAMES, contigName).make();
+                    .attribute(HOMOLOGY, leftHomology).attribute(HOMOLOGY_LENGTH, leftHomology.length()).attribute(INV55, true).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 100).attribute(MAX_ALIGN_LENGTH, 100).attribute(CONTIG_NAMES, contigName).make();
 
             final List<VariantContext> expectedVariants = Arrays.asList(
                     new VariantContextBuilder(expectedFirstMate).attribute(BND_MATEID_STR, expectedSecondMate.getID()).make(),
@@ -288,13 +288,13 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints ext
             final BreakpointComplications expectedBreakpointComplications = new BreakpointComplications.IntraChrStrandSwitchBreakpointComplications(leftHomology, "");
             final NovelAdjacencyAndAltHaplotype breakpoints = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, StrandSwitch.REVERSE_TO_FORWARD, expectedBreakpointComplications, INTRA_CHR_STRAND_SWITCH_33, EMPTY_BYTE_ARRAY);
             final List<SvType> expectedSVTypes = Arrays.asList(
-                    makeBNDType("BND_INV33_20_200201_200606_1", Allele.create("[20:200606[A"), true, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_33),
-                    makeBNDType("BND_INV33_20_200201_200606_2", Allele.create("[20:200201[G"), false, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_33)
+                    makeBNDType("20", 200201, "BND_INV33_20_200201_200606_1", Allele.create("A", true), Allele.create("[20:200606[A"), Collections.singletonMap(INV33, true), true, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_33),
+                    makeBNDType("20", 200606, "BND_INV33_20_200201_200606_2", Allele.create("G", true), Allele.create("[20:200201[G"), Collections.singletonMap(INV33, true), false, BreakEndVariantType.SupportedType.INTRA_CHR_STRAND_SWITCH_33)
             );
             final VariantContext expectedFirstMate = makeBND(new SimpleInterval("20:200201-200201"), new SimpleInterval("20:200606-200606"), Allele.create("A", true), "", INV33, true, false, false)
-                    .attribute(HOMOLOGY, leftHomology).attribute(HOMOLOGY_LENGTH, leftHomology.length()).attribute(INV33, "").attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 100).attribute(MAX_ALIGN_LENGTH, 100).attribute(CONTIG_NAMES, contigName).make();
+                    .attribute(HOMOLOGY, leftHomology).attribute(HOMOLOGY_LENGTH, leftHomology.length()).attribute(INV33, true).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 100).attribute(MAX_ALIGN_LENGTH, 100).attribute(CONTIG_NAMES, contigName).make();
             final VariantContext expectedSecondMate = makeBND(new SimpleInterval("20:200201-200201"), new SimpleInterval("20:200606-200606"), Allele.create("G", true), "", INV33, false, false, false)
-                    .attribute(HOMOLOGY, leftHomology).attribute(HOMOLOGY_LENGTH, leftHomology.length()).attribute(INV33, "").attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 100).attribute(MAX_ALIGN_LENGTH, 100).attribute(CONTIG_NAMES, contigName).make();
+                    .attribute(HOMOLOGY, leftHomology).attribute(HOMOLOGY_LENGTH, leftHomology.length()).attribute(INV33, true).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 100).attribute(MAX_ALIGN_LENGTH, 100).attribute(CONTIG_NAMES, contigName).make();
             final List<VariantContext> expectedVariants = Arrays.asList(
                     new VariantContextBuilder(expectedFirstMate).attribute(BND_MATEID_STR, expectedSecondMate.getID()).make(),
                     new VariantContextBuilder(expectedSecondMate).attribute(BND_MATEID_STR, expectedFirstMate.getID()).make()

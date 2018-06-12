@@ -1,36 +1,91 @@
 package org.broadinstitute.hellbender.tools.spark.sv.discovery;
 
 import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.vcf.VCFConstants;
 import org.apache.commons.lang3.EnumUtils;
+import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
+import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.NovelAdjacencyAndAltHaplotype;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.GATKSVVCFConstants;
+import org.broadinstitute.hellbender.utils.SimpleInterval;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.broadinstitute.hellbender.tools.spark.sv.utils.GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR;
 
 
 /**
- * Various types of structural variations
+ * Various types of structural variations.
+ * Holding minimum information on VariantContext
+ * it can hold:
+ * CHR, POS, ID, REF, ALT, SVTYPE, END (optional), SVLEN(optional)
  */
 public abstract class SvType {
+    public static final int NO_APPLICABLE_END = -1;
+    public static final int NO_APPLICABLE_LEN = -1;
 
+    protected final String variantCHR;
+    protected final int variantPOS;
+    protected final int variantEND;
     protected final String variantId;
+    protected final Allele refAllele;
     protected final Allele altAllele;
     protected final int svLen;
-    protected final Map<String, String> extraAttributes;
+    protected final Map<String, Object> typeSpecificAttributes;
 
-    protected static final Map<String, String> noExtraAttributes = Collections.emptyMap();
+    protected static final Map<String, Object> noExtraAttributes = Collections.emptyMap();
 
-    protected SvType(final String id, final Allele altAllele, final int len, final Map<String, String> typeSpecificExtraAttributes) {
-        variantId = id;
+    public SvType(final String variantCHR, final int variantPOS, final int variantEND, final String variantId,
+                  final Allele refAllele, final Allele altAllele, final int svLen, final Map<String, Object> typeSpecificAttributes) {
+        this.variantCHR = variantCHR;
+        this.variantPOS = variantPOS;
+        this.variantEND = variantEND;
+        this.variantId = variantId;
+        this.refAllele = refAllele;
         this.altAllele = altAllele;
-        svLen = len;
-        extraAttributes = typeSpecificExtraAttributes;
+        this.svLen = svLen;
+        this.typeSpecificAttributes = typeSpecificAttributes;
     }
 
+    public final VariantContextBuilder getBasicInformation() {
+        if (variantEND == NO_APPLICABLE_END) {
+            VariantContextBuilder builder = new VariantContextBuilder()
+                    .chr(variantCHR).start(variantPOS).stop(variantPOS)
+                    .id(variantId)
+                    .alleles(new ArrayList<>(Arrays.asList(refAllele, altAllele)))
+                    .attribute(GATKSVVCFConstants.SVTYPE, toString());
+            typeSpecificAttributes.forEach(builder::attribute);
+            return builder;
+        } else { // assuming if there's valid END, there must be valid SVLEN
+            VariantContextBuilder builder = new VariantContextBuilder()
+                    .chr(variantCHR).start(variantPOS).stop(variantEND)
+                    .id(variantId)
+                    .alleles(new ArrayList<>(Arrays.asList(refAllele, altAllele)))
+                    .attribute(VCFConstants.END_KEY, variantEND)
+                    .attribute(GATKSVVCFConstants.SVTYPE, toString())
+                    .attribute(GATKSVVCFConstants.SVLEN, svLen);
+            typeSpecificAttributes.forEach(builder::attribute);
+            return builder;
+        }
+    }
+
+    public String getVariantCHR() {
+        return variantCHR;
+    }
+    public int getVariantPOS() {
+        return variantPOS;
+    }
+    public int getVariantEND() {
+        return variantEND;
+    }
     public final String getInternalVariantId() {
         return variantId;
+    }
+    Allele getRefAllele() {
+        return refAllele;
     }
     public final Allele getAltAllele() {
         return altAllele;
@@ -38,8 +93,8 @@ public abstract class SvType {
     public final int getSVLength() {
         return svLen;
     }
-    public final Map<String, String> getTypeSpecificAttributes() {
-        return extraAttributes;
+    public final Map<String, Object> getTypeSpecificAttributes() {
+        return typeSpecificAttributes;
     }
 
     @Override
@@ -52,7 +107,16 @@ public abstract class SvType {
         if (svLen != svType.svLen) return false;
         if (!variantId.equals(svType.variantId)) return false;
         if (!altAllele.equals(svType.altAllele)) return false;
-        return extraAttributes.equals(svType.extraAttributes);
+        if (typeSpecificAttributes.size() != svType.typeSpecificAttributes.size()) return false;
+
+        for ( final Map.Entry<String, Object> act : typeSpecificAttributes.entrySet() ) {
+            if ( svType.typeSpecificAttributes.containsKey(act.getKey())) {
+                if ( ! act.getValue().equals(svType.typeSpecificAttributes.get(act.getKey())))
+                    return false;
+            } else
+                return false;
+        }
+        return true;
     }
 
     @Override
@@ -60,7 +124,7 @@ public abstract class SvType {
         int result = variantId.hashCode();
         result = 31 * result + altAllele.hashCode();
         result = 31 * result + svLen;
-        result = 31 * result + extraAttributes.hashCode();
+        result = 31 * result + typeSpecificAttributes.hashCode();
         return result;
     }
 
@@ -90,5 +154,13 @@ public abstract class SvType {
         int pos1 = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getStart();
         int pos2 = novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getEnd();
         return makeLocationString(leftContig, pos1, rightContig, pos2);
+    }
+
+    static byte[] extractRefBases(final SimpleInterval interval, final ReferenceMultiSource reference) {
+        try {
+            return reference.getReferenceBases(interval).getBases();
+        } catch (final IOException ioex) {
+            throw new GATKException("Failed to extract bases from region: " + interval.toString());
+        }
     }
 }

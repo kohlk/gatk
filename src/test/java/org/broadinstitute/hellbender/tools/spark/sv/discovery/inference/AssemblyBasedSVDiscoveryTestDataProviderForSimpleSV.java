@@ -253,7 +253,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 17000061, 17000100), 41 ,80, TextCigarCodec.decode("40S40M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(20, 0, 17000040, 17000061, 40, 41);
-        final List<SvType> expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("21:17000040-17000060"), false));
+        final List<SvType> expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("21:17000040-17000060"), Allele.create("G", true),false));
         final List<VariantContext> expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeDeletion(new SimpleInterval("21:17000040-17000060"), Allele.create("G", true), false),
                         40, contigName, SimpleSVType.SupportedType.DEL.name(), 17000060, -20, "", "", "").make());
@@ -298,7 +298,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 17000079, 17000122), 41 ,84, TextCigarCodec.decode("40S44M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(34, -4, 17000044, 17000079, 44, 41);
-        final List<SvType> expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("21:17000040-17000078"), false));
+        final List<SvType> expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("21:17000040-17000078"), Allele.create("G", true),false));
         final List<VariantContext> expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeDeletion(new SimpleInterval("21:17000040-17000078"), Allele.create("G", true), false),
                         40, contigName, SimpleSVType.SupportedType.DEL.name(), 17000078, -38, "", homology, "").make());
@@ -340,7 +340,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 17000101, 17000200), 151 ,250, TextCigarCodec.decode("100S100M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(0, 50, 17000100, 17000101, 100, 151);
-        final List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("21:17000100-17000100"), 50));
+        final List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("21:17000100-17000100"), Allele.create("G", true),50));
         final List<VariantContext> expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeInsertion("21", 17000100, 17000100, 50, Allele.create("G", true)),
                         100, contigName, SimpleSVType.SupportedType.INS.name(), 17000100, 50, insertedSeq, "", insertedSeq).make());
@@ -389,7 +389,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
             AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 17000131, 17000200), 81, 150, TextCigarCodec.decode("80S70M"), true, 60, 0, 70, ContigAlignmentsModifier.AlnModType.NONE);
             SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
             DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(60, 10, 17000070, 17000131, 70, 81);
-            final List<SvType> expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("21:17000070-17000130"), false));
+            final List<SvType> expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("21:17000070-17000130"), Allele.create("T", true), false));
             final List<VariantContext> expectedVariants = Collections.singletonList(
                     addStandardAttributes(makeDeletion(new SimpleInterval("21:17000070-17000130"), Allele.create("T", true), false),
                             70, contigName, SimpleSVType.SupportedType.DEL.name(), 17000130, -60, insSeqString, "", insSeqString).make());
@@ -423,7 +423,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
             AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 17000061, 17000100), 101, 140, TextCigarCodec.decode("100S40M"), true, 60, 0, 60, ContigAlignmentsModifier.AlnModType.NONE);
             SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
             DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(20, 60, 17000040, 17000061, 40, 101);
-            final List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("21:17000040-17000060"), 60));
+            final List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("21:17000040-17000060"), Allele.create("G", true), 60));
             final List<VariantContext> expectedVariants = Collections.singletonList(
                     addStandardAttributes(makeInsertion("21", 17000040, 17000060, 60, Allele.create("G", true)),
                             40, contigName, SimpleSVType.SupportedType.INS.name(), 17000060, 60, insSeqString, "", insSeqString).make());
@@ -458,8 +458,8 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
             SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
             DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(60, 55, 17000070, 17000131, 70, 126);
             final List<SvType> expectedSVTypes = Arrays.asList(
-                    makeDeletionType(new SimpleInterval("21:17000070-17000130"), false),
-                    makeInsertionType(new SimpleInterval("21:17000070-17000070"), 55)
+                    makeDeletionType(new SimpleInterval("21:17000070-17000130"), Allele.create("T", true), false),
+                    makeInsertionType(new SimpleInterval("21:17000070-17000070"), Allele.create("T", true),55)
             );
             final List<VariantContext> expectedVariants = Arrays.asList(
                     addStandardAttributes(makeDeletion(new SimpleInterval("21:17000070-17000130"), Allele.create("T", true), false), 70, contigName, SimpleSVType.SupportedType.DEL.name(), 17000130, -60, "", "", "")
@@ -508,7 +508,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 17000051, 17000100), 41 ,90, TextCigarCodec.decode("40S50M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(0, -10, 17000050, 17000051, 50, 41);
-        final List<SvType> expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("21:17000040-17000050"), true));
+        final List<SvType> expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("21:17000040-17000050"), Allele.create("G", true), true));
         final List<VariantContext> expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeDeletion(new SimpleInterval("21:17000040-17000050"), Allele.create("G", true), true), 50 - 10, contigName, SimpleSVType.SupportedType.DEL.name(), 17000050, -10, "", "CCCCCCCCCC", "")
                         .attribute(DUP_REPEAT_UNIT_REF_SPAN, "21:17000041-17000050").attribute(DUPLICATION_NUMBERS, "2,1").attribute(DUP_ORIENTATIONS, "+").attribute(DUP_TAN_CONTRACTION_STRING, "").make()
@@ -557,7 +557,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
             AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 17000041, 17000090), 51 ,100, TextCigarCodec.decode("50S50M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
             SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
             DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-10, 0, 17000050, 17000041, 50, 51);
-            final List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("21:17000040-17000040"), 10));
+            final List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("21:17000040-17000040"), Allele.create("G", true), 10));
             final List<VariantContext> expectedVariants = Collections.singletonList(
                     addStandardAttributes(makeInsertion("21", 17000040, 17000040, 10, Allele.create("G", true)), 50, contigName, SimpleSVType.SupportedType.INS.name(), 17000040, 10, StringUtil.bytesToString(expectedAltSeq), "", "")
                             .attribute(DUP_REPEAT_UNIT_REF_SPAN, "21:17000041-17000050").attribute(DUP_ORIENTATIONS, "++").attribute(DUP_SEQ_CIGARS, "10M,10M").attribute(DUPLICATION_NUMBERS, "1,2").attribute(DUP_TAN_EXPANSION_STRING, "").make()
@@ -592,7 +592,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
             AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 17000041, 17000135), 96 ,190, TextCigarCodec.decode("95S95M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
             SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
             DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-55, 0, 17000095, 17000041, 95, 96);
-            final List<SvType> expectedSVTypes = Collections.singletonList(makeTandemDuplicationType(new SimpleInterval("21:17000041-17000095"), 55));
+            final List<SvType> expectedSVTypes = Collections.singletonList(makeTandemDuplicationType(new SimpleInterval("21:17000041-17000095"), Allele.create("G", true), 55));
             final List<VariantContext> expectedVariants = Collections.singletonList(
                     addStandardAttributes(makeTandemDuplication(new SimpleInterval("21:17000041-17000095"), Allele.create("G", true), 55), 95, contigName, SimpleSVType.SupportedType.DUP.name(), 17000040, 55, doubleDup, "", "")
                             .attribute(DUP_REPEAT_UNIT_REF_SPAN, "21:17000041-17000095").attribute(DUP_ORIENTATIONS, "++").attribute(DUP_SEQ_CIGARS, "55M,55M").attribute(DUPLICATION_NUMBERS, "1,2").attribute(DUP_TAN_EXPANSION_STRING, "").make()
@@ -649,7 +649,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
 
             final NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltHaplotype = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, NO_SWITCH, expectedBreakpointComplications, SMALL_DUP_EXPANSION, expectedAltSeq.getBytes());
             DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-16, 310, 26849037, 26849022, 1394, 1705);
-            final List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("21:26849021-26849021"), insertedSeq.length() + 16));
+            final List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("21:26849021-26849021"), Allele.create("A", true), insertedSeq.length() + 16));
             final List<VariantContext> expectedVariants = Collections.singletonList(
                     addStandardAttributes(makeInsertion("21", 26849021, 26849021, insertedSeq.length() + 16, Allele.create("A", true)), 1363, contigName, SimpleSVType.SupportedType.INS.name(), 26849021, insertedSeq.length() + 16, expectedAltSeq, "", insertedSeq)
                             .attribute(DUP_REPEAT_UNIT_REF_SPAN, "21:26849022-26849037").attribute(DUP_ORIENTATIONS, "++").attribute(DUP_SEQ_CIGARS, "16M,16M").attribute(DUPLICATION_NUMBERS, "1,2").attribute(DUP_TAN_EXPANSION_STRING, "").make()
@@ -688,7 +688,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
             AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("21", 25297164, 25297300), 163 ,299, TextCigarCodec.decode("162S137M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
             SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
             DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-89, 10, 25297252, 25297164, 152, 163);
-            final List<SvType> expectedSVTypes = Collections.singletonList(makeTandemDuplicationType(new SimpleInterval("21", 25297164,25297252), 99));
+            final List<SvType> expectedSVTypes = Collections.singletonList(makeTandemDuplicationType(new SimpleInterval("21", 25297164,25297252), Allele.create("T", true), 99));
             final List<VariantContext> expectedVariants = Collections.singletonList(
                     addStandardAttributes(makeTandemDuplication(new SimpleInterval("21", 25297164,25297252), Allele.create("T", true), 99), 137, contigName, SimpleSVType.SupportedType.DUP.name(), 25297163, 99, StringUtil.bytesToString(expectedAltSeq), "", insertedSeq)
                             .attribute(DUP_REPEAT_UNIT_REF_SPAN, "21:25297164-25297252").attribute(DUP_ORIENTATIONS, "++").attribute(DUP_SEQ_CIGARS, "89M,89M").attribute(DUPLICATION_NUMBERS, "1,2").attribute(DUP_TAN_EXPANSION_STRING, "").make()
@@ -748,7 +748,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("20", 312610, 312757), 128 ,275, TextCigarCodec.decode("127S148M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-109, -13, 312718, 312610, 140, 128);
-        List<SvType> expectedSVTypes = Collections.singletonList(makeTandemDuplicationType(new SimpleInterval("20:312610-312705"), 96));
+        List<SvType> expectedSVTypes = Collections.singletonList(makeTandemDuplicationType(new SimpleInterval("20:312610-312705"), Allele.create("T", true), 96));
         List<VariantContext> expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeTandemDuplication(new SimpleInterval("20:312610-312705"), Allele.create("T", true), 96), 140 - pseudoHomology.length(), contigName, SimpleSVType.SupportedType.DUP.name(), 312609, 96, StringUtil.bytesToString(expectedAltSeq), pseudoHomology, "")
                         .attribute(DUP_REPEAT_UNIT_REF_SPAN, "20:312610-312705").attribute(DUP_IMPRECISE_AFFECTED_RANGE, "20:312610-312718").attribute(DUP_ORIENTATIONS, "++").attribute(DUPLICATION_NUMBERS, "1,2").attribute(DUP_TAN_EXPANSION_STRING, "").attribute(DUP_ANNOTATIONS_IMPRECISE, "").make()
@@ -779,7 +779,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         region2 = new AlignmentInterval(new SimpleInterval("20", 312706, 312853), 32, 179, TextCigarCodec.decode("31S148M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-13, -109, 312718, 312706, 140, 32);
-        expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("20:312609-312705"), true));
+        expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("20:312609-312705"), Allele.create("T", true), true));
         expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeDeletion(new SimpleInterval("20:312609-312705"), Allele.create("T", true), true), 140 - expectedBreakpointComplications.getHomologyForwardStrandRep().length(), contigName, SimpleSVType.SupportedType.DEL.name(), 312705, -96, StringUtil.bytesToString(expectedAltSeq), firstRepeat+pseudoHomology, "")
                         .attribute(DUP_REPEAT_UNIT_REF_SPAN, "20:312610-312705").attribute(DUP_IMPRECISE_AFFECTED_RANGE, "20:312610-312814").attribute(DUPLICATION_NUMBERS, "2,1").attribute(DUP_ORIENTATIONS, "+").attribute(DUP_TAN_CONTRACTION_STRING, "").attribute(DUP_ANNOTATIONS_IMPRECISE, "").make()
@@ -811,7 +811,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         region2 = new AlignmentInterval(new SimpleInterval("20", 312706, 312936), 32, 262, TextCigarCodec.decode("31S231M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-96, -192, 312801, 312706, 223, 32);
-        expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("20:312609-312705"), true));
+        expectedSVTypes = Collections.singletonList(makeDeletionType(new SimpleInterval("20:312609-312705"), Allele.create("T", true), true));
         expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeDeletion(new SimpleInterval("20:312609-312705"), Allele.create("T", true), true), 223 - expectedBreakpointComplications.getHomologyForwardStrandRep().length(), contigName, SimpleSVType.SupportedType.DEL.name(), 312705, -96, StringUtil.bytesToString(expectedAltSeq), firstRepeat+secondRepeat, "")
                         .attribute(DUP_REPEAT_UNIT_REF_SPAN, "20:312610-312705").attribute(DUP_IMPRECISE_AFFECTED_RANGE, "20:312610-312897").attribute(DUPLICATION_NUMBERS, "3,2").attribute(DUP_ORIENTATIONS, "++").attribute(DUP_TAN_CONTRACTION_STRING, "").attribute(DUP_ANNOTATIONS_IMPRECISE, "").make()
@@ -842,7 +842,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         region2 = new AlignmentInterval(new SimpleInterval("20", 312610, 312840), 128, 358, TextCigarCodec.decode("127S231M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-192, -96, 312801, 312610, 223, 128);
-        expectedSVTypes = Collections.singletonList(makeTandemDuplicationType(new SimpleInterval("20:312610-312705"), 96));
+        expectedSVTypes = Collections.singletonList(makeTandemDuplicationType(new SimpleInterval("20:312610-312705"), Allele.create("T", true), 96));
         expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeTandemDuplication(new SimpleInterval("20:312610-312705"), Allele.create("T", true), 96), 223 - 96, contigName, SimpleSVType.SupportedType.DUP.name(), 312609, 96, StringUtil.bytesToString(expectedAltSeq), firstRepeat, "")
                         .attribute(DUP_REPEAT_UNIT_REF_SPAN, "20:312610-312705").attribute(DUP_IMPRECISE_AFFECTED_RANGE, "20:312610-312801").attribute(DUP_ORIENTATIONS, "+++").attribute(DUPLICATION_NUMBERS, "2,3").attribute(DUP_TAN_EXPANSION_STRING, "").attribute(DUP_ANNOTATIONS_IMPRECISE, "").make()
@@ -892,7 +892,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         AlignmentInterval region2 = new AlignmentInterval(new SimpleInterval("20", 312610, 312703), 74 ,167, TextCigarCodec.decode("73S94M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         SimpleChimera expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         DistancesBetweenAlignmentsOnRefAndOnRead expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-55, -13, 312664, 312610, 86, 74);
-        List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("20:312609-312609"), 42));
+        List<SvType> expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("20:312609-312609"), Allele.create("T", true), 42));
         List<VariantContext> expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeInsertion("20", 312609, 312609, 42, Allele.create("T", true)), 86 - pseudoHomology.length(), contigName, SimpleSVType.SupportedType.INS.name(), 312609, 42, StringUtil.bytesToString(expectedAltSeq), "", "")
                         .attribute(HOMOLOGY, pseudoHomology).attribute(HOMOLOGY_LENGTH, pseudoHomology.length())
@@ -924,7 +924,7 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
         region2 = new AlignmentInterval(new SimpleInterval("20", 312610, 312732), 74, 196, TextCigarCodec.decode("73S123M"), true, 60, 0, 100, ContigAlignmentsModifier.AlnModType.NONE);
         expectedSimpleChimera = new SimpleChimera(contigName, region1, region2, NO_SWITCH, true, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         expectedDistances = new DistancesBetweenAlignmentsOnRefAndOnRead(-84, -42, 312693, 312610, 115, 74);
-        expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("20:312609-312609"), 42));
+        expectedSVTypes = Collections.singletonList(makeInsertionType(new SimpleInterval("20:312609-312609"), Allele.create("T", true), 42));
         expectedVariants = Collections.singletonList(
                 addStandardAttributes(makeInsertion("20", 312609, 312609, 42, Allele.create("T", true)), 115 - firstRepeat.length(), contigName, SimpleSVType.SupportedType.INS.name(), 312609, 42, StringUtil.bytesToString(expectedAltSeq), "", "")
                         .attribute(HOMOLOGY, firstRepeat).attribute(HOMOLOGY_LENGTH, firstRepeat.length())
