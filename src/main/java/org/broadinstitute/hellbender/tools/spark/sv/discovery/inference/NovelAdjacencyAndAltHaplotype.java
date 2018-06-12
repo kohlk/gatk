@@ -203,6 +203,17 @@ public class NovelAdjacencyAndAltHaplotype {
     }
 
     /**
+     * For replacement, one could have a case where the sequence being replaced (i.e. deleted sequence)
+     * is not large enough to trigger an structural variant DEL call,
+     * whereas we emit an INS call, and here we call it "fat" insertion.
+     */
+    public boolean isCandidateForFatInsertion() {
+        return type.equals(TypeInferredFromSimpleChimera.RPL)
+                &&
+                leftJustifiedRightRefLoc.getEnd() - leftJustifiedLeftRefLoc.getStart() < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND;
+    }
+
+    /**
      * @return the inferred type could be
      *          1) a single entry for simple variants, or
      *          2) a list of two entries for "replacement" case where the ref- and alt- path are both >=
@@ -233,7 +244,7 @@ public class NovelAdjacencyAndAltHaplotype {
             case INTRA_CHR_STRAND_SWITCH_33:
                 if ( complication.hasDuplicationAnnotation() ) { // inverted duplication
                     final int svLength =
-                            ((BreakpointComplications.IntraChrStrandSwitchBreakpointComplications) this.getComplication())
+                            ((BreakpointComplications.InvertedDuplicationBreakpointComplications) this.getComplication())
                                     .getDupSeqRepeatUnitRefSpan().size();
                     return Collections.singletonList( new SimpleSVType.DuplicationInverted(this, svLength) );
                 } else {
@@ -256,11 +267,11 @@ public class NovelAdjacencyAndAltHaplotype {
             {
                 final int deletedLength = leftJustifiedRightRefLoc.getStart() - leftJustifiedLeftRefLoc.getEnd();
                 final int insertionLength = complication.getInsertedSequenceForwardStrandRep().length();
-                if ( deletedLength < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND) { // "fat" insertion
+                if ( isCandidateForFatInsertion() ) {
                     return Collections.singletonList( new SimpleSVType.Insertion(this, insertionLength) );
-                } else { // "DEL" record with insertion
+                } else { // "DEL" record with possibly linked "INS"
                     final SimpleSVType.Deletion deletion = new SimpleSVType.Deletion(this, - deletedLength);
-                    if ( insertionLength < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND ){
+                    if ( insertionLength < STRUCTURAL_VARIANT_SIZE_LOWER_BOUND ){ // ins seq not long enough for an INS call
                         return Collections.singletonList( deletion );
                     } else {
                         final SimpleSVType.Insertion insertion = new SimpleSVType.Insertion(this, insertionLength);
@@ -319,23 +330,12 @@ public class NovelAdjacencyAndAltHaplotype {
      * </ul>
      */
     public int getLengthForDupTandem() {
+        // TODO: 6/11/18 the implementation taken below simply performs: inserted sequence length + copy number elevation * copy unit length,
+        // which could be wrong when the expansion is complex, or when the copies are different in length due to small insertion and deletions in those copies
+        // a better implementation is to simply calculate the difference in length in altseq and ref region size
         final BreakpointComplications.SmallDuplicationBreakpointComplications dupComplication = (BreakpointComplications.SmallDuplicationBreakpointComplications) getComplication();
         return dupComplication.getInsertedSequenceForwardStrandRep().length()
                 + (dupComplication.getDupSeqRepeatNumOnCtg() - dupComplication.getDupSeqRepeatNumOnRef()) * dupComplication.getDupSeqRepeatUnitRefSpan().size();
-
-        // TODO: 5/29/18 alternatively, it can be computed in the following way, which actually work better for complex dup expansion, and considering the
-//        if (type.equals(TypeInferredFromSimpleChimera.SMALL_DUP_EXPANSION)) {
-//            final BreakpointComplications.SmallDuplicationBreakpointComplications dupComplication = (BreakpointComplications.SmallDuplicationBreakpointComplications) getComplication();
-//            return dupComplication.getInsertedSequenceForwardStrandRep().length()
-//                    + (dupComplication.getDupSeqRepeatNumOnCtg() - dupComplication.getDupSeqRepeatNumOnRef()) * dupComplication.getDupSeqRepeatUnitRefSpan().size();
-//        } else if (type.equals(TypeInferredFromSimpleChimera.SMALL_DUP_CPX)) {
-//            BreakpointComplications.SmallDuplicationWithImpreciseDupRangeBreakpointComplications complexDupComplication = (BreakpointComplications.SmallDuplicationWithImpreciseDupRangeBreakpointComplications) getComplication();
-//            if (!complexDupComplication.isDupContraction()) {
-//                return getAltHaplotypeSequence().length - complexDupComplication.getImpreciseDupAffectedRefRange().size();
-//            }
-//        }
-//
-//        return -1;
     }
 
     public static final class Serializer extends com.esotericsoftware.kryo.Serializer<NovelAdjacencyAndAltHaplotype> {

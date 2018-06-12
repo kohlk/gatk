@@ -65,7 +65,15 @@ public class AnnotatedVariantProducer implements Serializable {
         final VariantContextBuilder builder1 = new VariantContextBuilder(secondVar);
         builder1.attribute(linkKey, firstVar.getID());
 
-        return Arrays.asList(builder0.make(), builder1.make());
+        // manually remove inserted sequence information from RPL event-produced DEL, when it can be linked with an INS
+        if (linkedVariants._1 instanceof SimpleSVType.Deletion)
+            return Arrays.asList(builder0.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE).rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH).rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE).make(),
+                                 builder1.make());
+        else if (linkedVariants._2 instanceof SimpleSVType.Deletion) {
+            return Arrays.asList(builder0.make(),
+                                 builder1.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE).rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH).rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE).make());
+        } else
+            return Arrays.asList(builder0.make(), builder1.make());
     }
 
     /**

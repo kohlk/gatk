@@ -92,7 +92,11 @@ public abstract class BreakpointsInference {
                 return new IntraChrRefOrderSwapBreakpointsInference(simpleChimera, contigSequence, referenceDictionary);
             case INTRA_CHR_STRAND_SWITCH_55:
             case INTRA_CHR_STRAND_SWITCH_33:
-                return new IntraChrStrandSwitchBreakpointInference(simpleChimera, contigSequence, referenceDictionary);
+                if ( simpleChimera.isCandidateInvertedDuplication() ) {
+                    return new InvertedDuplicationBreakpointsInference(simpleChimera, contigSequence, referenceDictionary);
+                } else {
+                    return new IntraChrStrandSwitchBreakpointInference(simpleChimera, contigSequence, referenceDictionary);
+                }
             case SIMPLE_DEL:
             case RPL:
             case SIMPLE_INS:
@@ -117,8 +121,12 @@ public abstract class BreakpointsInference {
                 " alt seq: " + (getInferredAltHaplotypeSequence() == null ? "NULL" : getInferredAltHaplotypeSequence()) ;
     }
 
-    // TODO: 5/28/18 a bug exists here in location inference that when homology exists, we are implicitly assuming that the hom. seq. has no micro insertion/deletions in its alignments at breakpoints (as we are simply adding/subtracting hom. len.)
-    //       this is not a serious problem, unless the net accumulated insertion/deletion length is large (in the range of tens of bp or longer, since that affects overlap-based evaluation)
+    // TODO: 5/28/18 a bug exists here in location inference that when homology exists, see ticket 4883
+    //       we are implicitly assuming that the hom. seq. has no micro insertion/deletions
+    //       in its alignments at breakpoints (as we are simply adding/subtracting hom. len.)
+    //       this is not a serious problem,
+    //       unless the net accumulated insertion/deletion length is large
+    //       (in the range of tens of bp or longer, since that affects overlap-based evaluation)
     //       similarly, this applies to the duplication cases, where the duplicated copies might not be of exactly the same size
     // =================================================================================================================
 
@@ -169,7 +177,10 @@ public abstract class BreakpointsInference {
             if( complications.insertedSequenceForwardStrandRep.isEmpty() ) { // simple deletion
                 altHaplotypeSequence = new byte[0]; // simple deletion has no bases available: (POS, END] is gone!
             } else {
-                altHaplotypeSequence = complications.insertedSequenceForwardStrandRep.getBytes(); // note that this will lead to, unless specifically removed, inserted sequence annotation for the deletion call extracted from replacement, even when the inserted sequence is long enough to warrant an insertion
+                // note that this will lead to, unless specifically removed, inserted sequence annotation for the deletion call extracted from replacement,
+                // even when the inserted sequence is long enough to warrant an insertion,
+                // so downstream annotator needs to remove this attribute when linking the INS and DEL
+                altHaplotypeSequence = complications.insertedSequenceForwardStrandRep.getBytes();
             }
         }
     }
@@ -371,6 +382,7 @@ public abstract class BreakpointsInference {
         }
     }
 
+    // simple strand-switch breakpoint with alignments NOT overlapping on the read/assembly contig
     final static class IntraChrStrandSwitchBreakpointInference extends BNDTypeBreakpointsInference {
 
         private IntraChrStrandSwitchBreakpointComplications complications;
@@ -395,27 +407,53 @@ public abstract class BreakpointsInference {
                     = downstreamBreakpointRefContig
                     = simpleChimera.regionWithLowerCoordOnContig.referenceSpan.getContig();
 
-            if (simpleChimera.isCandidateInvertedDuplication()){
+            final int homologyLen = complications.getHomologyForwardStrandRep().length();
 
-                upstreamBreakpointRefPos = complications.getDupSeqRepeatUnitRefSpan().getStart() - 1;
-                downstreamBreakpointRefPos = complications.getDupSeqRepeatUnitRefSpan().getEnd();
-
-                altHaplotypeSequence = extractAltHaplotypeForInvDup(simpleChimera, contigSequence);
-            } else { // simple strand-switch breakpoint with alignments NOT overlapping on the read/assembly contig
-
-                final int homologyLen = complications.getHomologyForwardStrandRep().length();
-
-                final Tuple2<SimpleInterval, SimpleInterval> coordinateSortedRefSpans = simpleChimera.getCoordinateSortedRefSpans(referenceDictionary);
-                final SimpleInterval leftReferenceInterval  = coordinateSortedRefSpans._1,
-                                     rightReferenceInterval = coordinateSortedRefSpans._2;
-                if (simpleChimera.strandSwitch == StrandSwitch.FORWARD_TO_REVERSE){
-                    upstreamBreakpointRefPos = leftReferenceInterval.getEnd() - homologyLen;
-                    downstreamBreakpointRefPos = rightReferenceInterval.getEnd();
-                } else {
-                    upstreamBreakpointRefPos = leftReferenceInterval.getStart();
-                    downstreamBreakpointRefPos = rightReferenceInterval.getStart() + homologyLen;
-                }
+            final Tuple2<SimpleInterval, SimpleInterval> coordinateSortedRefSpans = simpleChimera.getCoordinateSortedRefSpans(referenceDictionary);
+            final SimpleInterval leftReferenceInterval  = coordinateSortedRefSpans._1,
+                                 rightReferenceInterval = coordinateSortedRefSpans._2;
+            if (simpleChimera.strandSwitch == StrandSwitch.FORWARD_TO_REVERSE){
+                upstreamBreakpointRefPos = leftReferenceInterval.getEnd() - homologyLen;
+                downstreamBreakpointRefPos = rightReferenceInterval.getEnd();
+            } else {
+                upstreamBreakpointRefPos = leftReferenceInterval.getStart();
+                downstreamBreakpointRefPos = rightReferenceInterval.getStart() + homologyLen;
             }
+
+            validateInferredLocations(new SimpleInterval(upstreamBreakpointRefContig, upstreamBreakpointRefPos, upstreamBreakpointRefPos),
+                    new SimpleInterval(downstreamBreakpointRefContig, downstreamBreakpointRefPos, downstreamBreakpointRefPos),
+                    referenceDictionary, toString());
+        }
+    }
+
+    final static class InvertedDuplicationBreakpointsInference extends BNDTypeBreakpointsInference {
+
+        private InvertedDuplicationBreakpointComplications complications;
+
+        @Override
+        BreakpointComplications getComplications() {
+            return complications;
+        }
+
+        @Override
+        void resolveComplications(final SimpleChimera simpleChimera, final byte[] contigSequence, final SAMSequenceDictionary referenceDictionary) {
+            complications = new InvertedDuplicationBreakpointComplications(simpleChimera, contigSequence,
+                    simpleChimera.firstContigRegionRefSpanAfterSecond(referenceDictionary));
+        }
+
+        InvertedDuplicationBreakpointsInference(final SimpleChimera simpleChimera,
+                                                final byte[] contigSequence,
+                                                final SAMSequenceDictionary referenceDictionary) {
+            super(simpleChimera, contigSequence, referenceDictionary);
+
+            upstreamBreakpointRefContig
+                    = downstreamBreakpointRefContig
+                    = simpleChimera.regionWithLowerCoordOnContig.referenceSpan.getContig();
+
+            upstreamBreakpointRefPos = complications.getDupSeqRepeatUnitRefSpan().getStart() - 1;
+            downstreamBreakpointRefPos = complications.getDupSeqRepeatUnitRefSpan().getEnd();
+
+            altHaplotypeSequence = extractAltHaplotypeForInvDup(simpleChimera, contigSequence);
 
             validateInferredLocations(new SimpleInterval(upstreamBreakpointRefContig, upstreamBreakpointRefPos, upstreamBreakpointRefPos),
                     new SimpleInterval(downstreamBreakpointRefContig, downstreamBreakpointRefPos, downstreamBreakpointRefPos),

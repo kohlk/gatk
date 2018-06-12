@@ -17,12 +17,14 @@ import org.broadinstitute.hellbender.cmdline.programgroups.StructuralVariantDisc
 import org.broadinstitute.hellbender.engine.filters.ReadFilter;
 import org.broadinstitute.hellbender.engine.filters.ReadFilterLibrary;
 import org.broadinstitute.hellbender.engine.spark.GATKSparkTool;
+import org.broadinstitute.hellbender.exceptions.UserException;
 import org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryPipelineSpark;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.AlignedContig;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVIntervalTree;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVUtils;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVVCFWriter;
 
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
@@ -120,10 +122,10 @@ public final class DiscoverVariantsFromContigAlignmentsSAMSpark extends GATKSpar
                 StructuralVariationDiscoveryPipelineSpark.broadcastCNVCalls(ctx, getHeaderForReads(),
                         discoverStageArgs.cnvCallsFile);
 
-        final String vcfOutputFile = prefixForOutput + (prefixForOutput.endsWith("/") ? "" : "_") + SVUtils.getSampleId(getHeaderForReads()) + "_inv_del_ins.vcf";
+        final String vcfOutputPath = getVcfOutputPath();
 
         final SvDiscoveryInputMetaData svDiscoveryInputMetaData =
-                new SvDiscoveryInputMetaData(ctx, discoverStageArgs, null, vcfOutputFile,
+                new SvDiscoveryInputMetaData(ctx, discoverStageArgs, null, vcfOutputPath,
                         null, null, null,
                         cnvCallsBroadcast,
                         getHeaderForReads(), getReference(), localLogger);
@@ -141,7 +143,17 @@ public final class DiscoverVariantsFromContigAlignmentsSAMSpark extends GATKSpar
                         .discoverVariantsFromChimeras(svDiscoveryInputMetaData, parsedContigAlignments);
 
         final SAMSequenceDictionary refSeqDictionary = svDiscoveryInputMetaData.getReferenceData().getReferenceSequenceDictionaryBroadcast().getValue();
-        SVVCFWriter.writeVCF(annotatedVariants, vcfOutputFile, refSeqDictionary, localLogger);
+        SVVCFWriter.writeVCF(annotatedVariants, vcfOutputPath, refSeqDictionary, localLogger);
     }
 
+    private String getVcfOutputPath() {
+        if ( java.nio.file.Files.exists(Paths.get(prefixForOutput)) ) {
+            if (java.nio.file.Files.isDirectory(Paths.get(prefixForOutput))) // existing directory
+                return prefixForOutput + (prefixForOutput.endsWith("/") ? "" : "/") + SVUtils.getSampleId(getHeaderForReads()) + "_inv_del_ins.vcf";
+            else
+                throw new UserException("Provided prefix for output is pointing to an existing file: " + prefixForOutput); // to avoid accidental override of a file
+        } else { // prefixForOutput doesn't point to an existing file or directory
+            return prefixForOutput + (prefixForOutput.endsWith("/") ? "" : "_") + SVUtils.getSampleId(getHeaderForReads()) + "_inv_del_ins.vcf";
+        }
+    }
 }

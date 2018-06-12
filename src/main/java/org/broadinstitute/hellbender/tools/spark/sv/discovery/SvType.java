@@ -65,7 +65,7 @@ public abstract class SvType {
     }
 
     // TODO: 5/23/18 any better way to do this?
-    public static Set<String> getKnownTypes() {
+    public static SortedSet<String> getKnownTypes() {
         final SortedSet<String> knownTypes = new TreeSet<>( EnumUtils.getEnumMap(SimpleSVType.SupportedType.class).keySet() );
 
         knownTypes.add(GATKSVVCFConstants.CPX_SV_SYB_ALT_ALLELE_STR);
@@ -77,18 +77,18 @@ public abstract class SvType {
         return Collections.unmodifiableSortedSet(knownTypes);
     }
 
-    public static String makeLocationPartOfID(final String chr1, final int pos1, final String chr2, final int pos2) {
+    public static String makeLocationString(final String chr1, final int pos1, final String chr2, final int pos2) {
         return chr1 + INTERVAL_VARIANT_ID_FIELD_SEPARATOR
                 + pos1 + INTERVAL_VARIANT_ID_FIELD_SEPARATOR
                 + (chr2.equals(chr1) ? "" : chr2 + INTERVAL_VARIANT_ID_FIELD_SEPARATOR)
                 + pos2;
     }
 
-    public static String makeLocationPartOfID(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype) {
+    public static String makeLocationString(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype) {
         String leftContig = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getContig();
         String rightContig = novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getContig();
         int pos1 = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getStart();
         int pos2 = novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getEnd();
-        return makeLocationPartOfID(leftContig, pos1, rightContig, pos2);
+        return makeLocationString(leftContig, pos1, rightContig, pos2);
     }
 }

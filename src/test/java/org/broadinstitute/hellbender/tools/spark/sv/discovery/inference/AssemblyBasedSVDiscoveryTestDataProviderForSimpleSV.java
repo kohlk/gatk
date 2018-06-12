@@ -462,10 +462,10 @@ public final class AssemblyBasedSVDiscoveryTestDataProviderForSimpleSV extends A
                     makeInsertionType(new SimpleInterval("21:17000070-17000070"), 55)
             );
             final List<VariantContext> expectedVariants = Arrays.asList(
-                    addStandardAttributes(makeDeletion(new SimpleInterval("21:17000070-17000130"), Allele.create("T", true), false), 70, contigName, SimpleSVType.SupportedType.DEL.name(), 17000130, -60, insSeqString, "", insSeqString)
-                            .attribute(LINK, SimpleSVType.SupportedType.INS.name() + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + SvType.makeLocationPartOfID("21", 17000070, "21", 17000070)).make(),
+                    addStandardAttributes(makeDeletion(new SimpleInterval("21:17000070-17000130"), Allele.create("T", true), false), 70, contigName, SimpleSVType.SupportedType.DEL.name(), 17000130, -60, "", "", "")
+                            .attribute(LINK, SimpleSVType.SupportedType.INS.name() + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + SvType.makeLocationString("21", 17000070, "21", 17000070)).make(),
                     addStandardAttributes(makeInsertion("21", 17000070, 17000070, 55, Allele.create("T", true)), 70, contigName, SimpleSVType.SupportedType.INS.name(), 17000070, 55, insSeqString, "", insSeqString)
-                            .attribute(LINK, SimpleSVType.SupportedType.DEL.name() + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + SvType.makeLocationPartOfID("21", 17000070, "21", 17000130)).make()
+                            .attribute(LINK, SimpleSVType.SupportedType.DEL.name() + INTERVAL_VARIANT_ID_FIELD_SEPARATOR + SvType.makeLocationString("21", 17000070, "21", 17000130)).make()
             );
             result.add(new TestDataForSimpleSV(region1, region2, contigName, contigSeq, false, expectedSimpleChimera, expectedNovelAdjacencyAndAltHaplotype, expectedSVTypes, expectedVariants, expectedDistances, BreakpointsInference.SimpleInsertionDeletionBreakpointsInference.class));
 

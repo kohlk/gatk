@@ -197,9 +197,9 @@ public class BreakpointComplicationsAndLocationAndAltSeqInferenceUnitTest extend
                 Assert.assertEquals(((BreakpointComplications.SmallDuplicationWithImpreciseDupRangeBreakpointComplications) actualComplication).getImpreciseDupAffectedRefRange(),
                                     ((BreakpointComplications.SmallDuplicationWithImpreciseDupRangeBreakpointComplications) expectedComplication).getImpreciseDupAffectedRefRange());
             }
-        } else if (actualComplication instanceof BreakpointComplications.IntraChrStrandSwitchBreakpointComplications) {
-            BreakpointComplications.IntraChrStrandSwitchBreakpointComplications actualIntraChrSSComplication = (BreakpointComplications.IntraChrStrandSwitchBreakpointComplications) actualComplication;
-            BreakpointComplications.IntraChrStrandSwitchBreakpointComplications expectedIntraChrSSComplication = (BreakpointComplications.IntraChrStrandSwitchBreakpointComplications) expectedComplication;
+        } else if (actualComplication instanceof BreakpointComplications.InvertedDuplicationBreakpointComplications) {
+            BreakpointComplications.InvertedDuplicationBreakpointComplications actualIntraChrSSComplication = (BreakpointComplications.InvertedDuplicationBreakpointComplications) actualComplication;
+            BreakpointComplications.InvertedDuplicationBreakpointComplications expectedIntraChrSSComplication = (BreakpointComplications.InvertedDuplicationBreakpointComplications) expectedComplication;
 
             Assert.assertEquals(actualIntraChrSSComplication.getDupSeqRepeatUnitRefSpan(), expectedIntraChrSSComplication.getDupSeqRepeatUnitRefSpan());
             Assert.assertEquals(actualIntraChrSSComplication.getDupSeqOrientationsOnCtg(), expectedIntraChrSSComplication.getDupSeqOrientationsOnCtg());

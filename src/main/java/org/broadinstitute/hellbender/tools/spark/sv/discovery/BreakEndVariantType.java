@@ -66,7 +66,7 @@ public abstract class BreakEndVariantType extends SvType {
         // if no strand switch or different contig, "", otherwise append INV55/33
         final String bndtype = narl.getStrandSwitch().equals(StrandSwitch.NO_SWITCH) || !narl.getLeftJustifiedLeftRefLoc().getContig().equals(narl.getLeftJustifiedRightRefLoc().getContig())? ""
                 : (narl.getStrandSwitch().equals(StrandSwitch.FORWARD_TO_REVERSE) ? INV55 : INV33);
-        String locationPartOfString = makeLocationPartOfID(narl.getLeftJustifiedLeftRefLoc().getContig(),
+        String locationPartOfString = makeLocationString(narl.getLeftJustifiedLeftRefLoc().getContig(),
                 narl.getLeftJustifiedLeftRefLoc().getStart(), narl.getLeftJustifiedRightRefLoc().getContig(),
                 narl.getLeftJustifiedRightRefLoc().getEnd());
         return BREAKEND_STR + INTERVAL_VARIANT_ID_FIELD_SEPARATOR +
@@ -124,16 +124,6 @@ public abstract class BreakEndVariantType extends SvType {
                 return forUpstreamLoc ? ins : SequenceUtil.reverseComplement(ins);
             }
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            return super.equals(o);
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
-        }
     }
 
     public static final class IntraChromosomalStrandSwitch55BreakEnd extends IntraChromosomalStrandSwitchBreakEnd {
@@ -162,16 +152,6 @@ public abstract class BreakEndVariantType extends SvType {
         private static Allele constructAltAllele(final String refBase, final String insertedSequence, final SimpleInterval novelAdjRefLoc) {
             return Allele.create(refBase + insertedSequence + "]" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "]");
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            return super.equals(o);
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
-        }
     }
 
     public static final class IntraChromosomalStrandSwitch33BreakEnd extends IntraChromosomalStrandSwitchBreakEnd {
@@ -198,16 +178,6 @@ public abstract class BreakEndVariantType extends SvType {
 
         private static Allele constructAltAllele(final String refBase, final String insertedSequence, final SimpleInterval novelAdjRefLoc) {
             return Allele.create("[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[" + insertedSequence + refBase);
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            return super.equals(o);
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
         }
     }
 
@@ -241,16 +211,6 @@ public abstract class BreakEndVariantType extends SvType {
             } else {
                 return Allele.create(refBase + insertedSequence + "[" + novelAdjRefLoc.getContig() + ":" + novelAdjRefLoc.getEnd() + "[");
             }
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            return super.equals(o);
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
         }
     }
 
@@ -300,25 +260,11 @@ public abstract class BreakEndVariantType extends SvType {
 
         private static String extractInsertedSequence(final NovelAdjacencyAndAltHaplotype narl, final boolean forUpstreamLoc) {
             final String ins = narl.getComplication().getInsertedSequenceForwardStrandRep();
-            if (ins.isEmpty()) {
+            if (ins.isEmpty() || narl.getStrandSwitch() == StrandSwitch.NO_SWITCH) {
                 return ins;
             } else {
-                if (narl.getStrandSwitch() == StrandSwitch.NO_SWITCH) {
-                    return narl.getComplication().getInsertedSequenceForwardStrandRep();
-                } else {
-                    return forUpstreamLoc == (narl.getStrandSwitch().equals(StrandSwitch.FORWARD_TO_REVERSE) ) ? ins: SequenceUtil.reverseComplement(ins);
-                }
+                return forUpstreamLoc == (narl.getStrandSwitch().equals(StrandSwitch.FORWARD_TO_REVERSE) ) ? ins: SequenceUtil.reverseComplement(ins);
             }
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            return super.equals(o);
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
         }
     }
 }

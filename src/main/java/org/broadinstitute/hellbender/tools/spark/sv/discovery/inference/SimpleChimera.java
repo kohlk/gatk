@@ -447,7 +447,7 @@ public class SimpleChimera {
      *                                  when the chimera involves strand switch
      */
     DistancesBetweenAlignmentsOnRefAndOnRead getDistancesBetweenAlignmentsOnRefAndOnRead() {
-        if ( !isNeitherIncompleteNorSimpleTranslocation() || ! strandSwitch.equals(StrandSwitch.NO_SWITCH)) {
+        if ( ! (isNeitherIncompleteNorSimpleTranslocation() && strandSwitch.equals(StrandSwitch.NO_SWITCH)) ) {
             throw new UnsupportedOperationException(
                     "Assumption that the simple chimera is neither incomplete picture nor simple translocation is violated.\n" +
                             toString());

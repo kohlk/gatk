@@ -174,12 +174,12 @@ public abstract class BreakpointComplications {
      */
     @VisibleForTesting
     static String inferHomology(final AlignmentInterval first, final AlignmentInterval second, final byte[] contigSequence,
-                                final boolean oneAfterTwo) {
+                                final boolean firstAfterSecond) {
 
         if (first.endInAssembledContig >= second.startInAssembledContig) {
             final byte[] homologyBytes = Arrays.copyOfRange(contigSequence,
                     second.startInAssembledContig-1, first.endInAssembledContig);
-            return new String(reverseComplementIfNecessary(homologyBytes, first, second, oneAfterTwo));
+            return new String(reverseComplementIfNecessary(homologyBytes, first, second, firstAfterSecond));
         } else {
             return "";
         }
@@ -191,12 +191,12 @@ public abstract class BreakpointComplications {
      */
     @VisibleForTesting
     static String inferInsertedSequence(final AlignmentInterval first, final AlignmentInterval second, final byte[] contigSequence,
-                                        final boolean oneAfterTwo) {
+                                        final boolean firstAfterSecond) {
 
         if (first.endInAssembledContig < second.startInAssembledContig - 1) {
             final byte[] insertedSequenceBytes = Arrays.copyOfRange(contigSequence,
                     first.endInAssembledContig, second.startInAssembledContig - 1);
-            return new String(reverseComplementIfNecessary(insertedSequenceBytes, first, second, oneAfterTwo));
+            return new String(reverseComplementIfNecessary(insertedSequenceBytes, first, second, firstAfterSecond));
         } else {
             return "";
         }
@@ -204,13 +204,13 @@ public abstract class BreakpointComplications {
 
     private static byte[] reverseComplementIfNecessary(final byte[] seq,
                                                        final AlignmentInterval first, final AlignmentInterval second,
-                                                       final boolean oneAfterTwo) {
+                                                       final boolean firstAfterSecond) {
         if ( first.forwardStrand == second.forwardStrand ) { // reference order switch
             if (!first.forwardStrand) {
                 SequenceUtil.reverseComplement(seq, 0, seq.length);
             }
         } else {
-            if (oneAfterTwo == first.forwardStrand) {
+            if (firstAfterSecond == first.forwardStrand) {
                 SequenceUtil.reverseComplement(seq, 0, seq.length);
             }
         }
@@ -233,7 +233,7 @@ public abstract class BreakpointComplications {
             super(homologyForwardStrandRep, insertedSequenceForwardStrandRep);
         }
 
-        SimpleInsDelOrReplacementBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
+        SimpleInsDelOrReplacementBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
 
             final DistancesBetweenAlignmentsOnRefAndOnRead distances = simpleChimera.getDistancesBetweenAlignmentsOnRefAndOnRead();
             final int distBetweenAlignRegionsOnRef = distances.gapBetweenAlignRegionsOnRef, // distance-1 between the two regions on reference, denoted as d1 in the comments below
@@ -245,17 +245,17 @@ public abstract class BreakpointComplications {
                     // or    : deletion with scar, i.e. large non-conserved substitution, reference bases [r1e+1, r2b-1] is substituted with contig bases [c1e+1, c2b-1]
                     insertedSequenceForwardStrandRep =
                             inferInsertedSequence(simpleChimera.regionWithLowerCoordOnContig,
-                                    simpleChimera.regionWithHigherCoordOnContig, contigSeq, oneAfterTwo);
+                                    simpleChimera.regionWithHigherCoordOnContig, contigSeq, firstAfterSecond);
                 } else {
                     // a sequence of bases of length d1+HOM is deleted, and there's homology (which could be dup, but cannot tell): leftFlank+HOM+[r1e+1, r2b-1]+HOM+rightFlank -> leftFlank+HOM+rightFlank
                     homologyForwardStrandRep =
                             inferHomology(simpleChimera.regionWithLowerCoordOnContig,
-                                    simpleChimera.regionWithHigherCoordOnContig, contigSeq, oneAfterTwo);
+                                    simpleChimera.regionWithHigherCoordOnContig, contigSeq, firstAfterSecond);
                 }
             } else if (distBetweenAlignRegionsOnRef == 0 && distBetweenAlignRegionsOnCtg > 0) { // Insertion: simple insertion, inserted sequence is the sequence [c1e+1, c2b-1] on the contig
                 insertedSequenceForwardStrandRep =
                         inferInsertedSequence(simpleChimera.regionWithLowerCoordOnContig,
-                                simpleChimera.regionWithHigherCoordOnContig, contigSeq, oneAfterTwo);
+                                simpleChimera.regionWithHigherCoordOnContig, contigSeq, firstAfterSecond);
             } else {
                 throw new GATKException.ShouldNeverReachHereException(
                         "Inferring breakpoint complications with the wrong unit: " +
@@ -322,6 +322,28 @@ public abstract class BreakpointComplications {
             this.dupSeqStrandOnCtg = dupSeqStrandOnCtg;
         }
 
+        SmallDuplicationBreakpointComplications() {
+
+        }
+
+        SmallDuplicationBreakpointComplications(final Kryo kryo, final Input input) {
+            super(kryo, input);
+            final String ctg = input.readString();
+            final int start = input.readInt();
+            final int end = input.readInt();
+            dupSeqRepeatUnitRefSpan = new SimpleInterval(ctg, start, end);
+            dupSeqRepeatNumOnRef = input.readInt();
+            dupSeqRepeatNumOnCtg = input.readInt();
+            dupSeqStrandOnRef = new ArrayList<>(dupSeqRepeatNumOnRef);
+            for (int i=0; i<dupSeqRepeatNumOnRef; ++i) {
+                dupSeqStrandOnRef.add(Strand.values()[input.readInt()]);
+            }
+            dupSeqStrandOnCtg = new ArrayList<>(dupSeqRepeatNumOnCtg);
+            for (int i=0; i<dupSeqRepeatNumOnCtg; ++i) {
+                dupSeqStrandOnCtg.add(Strand.values()[input.readInt()]);
+            }
+        }
+
         public final SimpleInterval getDupSeqRepeatUnitRefSpan() {
             return dupSeqRepeatUnitRefSpan;
         }
@@ -374,28 +396,6 @@ public abstract class BreakpointComplications {
 
         public final boolean isDupContraction() {
             return dupSeqRepeatNumOnRef > dupSeqRepeatNumOnCtg;
-        }
-
-        SmallDuplicationBreakpointComplications() {
-
-        }
-
-        SmallDuplicationBreakpointComplications(final Kryo kryo, final Input input) {
-            super(kryo, input);
-            final String ctg = input.readString();
-            final int start = input.readInt();
-            final int end = input.readInt();
-            dupSeqRepeatUnitRefSpan = new SimpleInterval(ctg, start, end);
-            dupSeqRepeatNumOnRef = input.readInt();
-            dupSeqRepeatNumOnCtg = input.readInt();
-            dupSeqStrandOnRef = new ArrayList<>(dupSeqRepeatNumOnRef);
-            for (int i=0; i<dupSeqRepeatNumOnRef; ++i) {
-                dupSeqStrandOnRef.add(Strand.values()[input.readInt()]);
-            }
-            dupSeqStrandOnCtg = new ArrayList<>(dupSeqRepeatNumOnCtg);
-            for (int i=0; i<dupSeqRepeatNumOnCtg; ++i) {
-                dupSeqStrandOnCtg.add(Strand.values()[input.readInt()]);
-            }
         }
 
         protected void serialize(final Kryo kryo, final Output output) {
@@ -457,6 +457,15 @@ public abstract class BreakpointComplications {
             super(homologyForwardStrandRep, insertedSequenceForwardStrandRep, dupSeqRepeatUnitRefSpan, dupSeqRepeatNumOnRef, dupSeqRepeatNumOnCtg, dupSeqStrandOnRef, dupSeqStrandOnCtg);
             this.cigarStringsForDupSeqOnCtg = cigarStringsForDupSeqOnCtg;
         }
+        private SmallDuplicationWithPreciseDupRangeBreakpointComplications(final Kryo kryo, final Input input) {
+            super(kryo, input);
+
+            final int cigarCounts = input.readInt();
+            cigarStringsForDupSeqOnCtg = new ArrayList<>(cigarCounts);
+            for(int i = 0; i < cigarCounts; ++i) {
+                cigarStringsForDupSeqOnCtg.add(input.readString());
+            }
+        }
 
         @Override
         public final String toString() {
@@ -475,7 +484,7 @@ public abstract class BreakpointComplications {
             return parentAttributesToBeFilled;
         }
 
-        SmallDuplicationWithPreciseDupRangeBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
+        SmallDuplicationWithPreciseDupRangeBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
             final DistancesBetweenAlignmentsOnRefAndOnRead distances = simpleChimera.getDistancesBetweenAlignmentsOnRefAndOnRead();
 
             if (distances.gapBetweenAlignRegionsOnRef > 0)
@@ -488,7 +497,7 @@ public abstract class BreakpointComplications {
                     // Tandem repeat expansion:
                     // reference bases [r1e-|d1|+1, r1e] to contig bases [c1e-|d1|+1, c1e] and [c2b, c2b+|d1|-1]
                     // with optional inserted sequence [c1e+1, c2b-1] in between the two intervals on contig
-                    resolveComplicationForSimpleTandupExpansion(simpleChimera, distances, contigSeq, oneAfterTwo);
+                    resolveComplicationForSimpleTandupExpansion(simpleChimera, distances, contigSeq, firstAfterSecond);
                 } else {
                     throw new GATKException.ShouldNeverReachHereException(
                             "Simple chimera being sent down the wrong path, where the signature indicates " +
@@ -498,7 +507,7 @@ public abstract class BreakpointComplications {
                 if (distances.gapBetweenAlignRegionsOnCtg < 0) {
                     // Tandem repeat contraction: reference has two copies but one copy was deleted on the contig;
                     // duplicated sequence on reference are [r1e-|d2|+1, r1e] and [r2b, r2b+|d2|-1]
-                    resolveComplicationForSimpleTandupContraction(simpleChimera, distances, contigSeq, oneAfterTwo);
+                    resolveComplicationForSimpleTandupContraction(simpleChimera, distances, contigSeq, firstAfterSecond);
                 } else if (distances.gapBetweenAlignRegionsOnCtg > 0) {
                     throw new GATKException.ShouldNeverReachHereException(
                             "Simple chimera being sent down the wrong path, where the signature indicates " +
@@ -521,7 +530,7 @@ public abstract class BreakpointComplications {
 
         private void resolveComplicationForSimpleTandupExpansion(final SimpleChimera simpleChimera,
                                                                  final DistancesBetweenAlignmentsOnRefAndOnRead distances,
-                                                                 final byte[] contigSeq, final boolean oneAfterTwo) {
+                                                                 final byte[] contigSeq, final boolean firstAfterSecond) {
 
             final AlignmentInterval firstContigRegion = simpleChimera.regionWithLowerCoordOnContig;
             final AlignmentInterval secondContigRegion = simpleChimera.regionWithHigherCoordOnContig;
@@ -532,7 +541,7 @@ public abstract class BreakpointComplications {
                 leftReferenceInterval = simpleChimera.regionWithHigherCoordOnContig.referenceSpan;
 
             // note this does not incorporate the duplicated reference sequence
-            insertedSequenceForwardStrandRep = distances.gapBetweenAlignRegionsOnCtg == 0 ? "" : inferInsertedSequence(firstContigRegion, secondContigRegion, contigSeq, oneAfterTwo);
+            insertedSequenceForwardStrandRep = distances.gapBetweenAlignRegionsOnCtg == 0 ? "" : inferInsertedSequence(firstContigRegion, secondContigRegion, contigSeq, firstAfterSecond);
             dupSeqRepeatUnitRefSpan   = new SimpleInterval(leftReferenceInterval.getContig(), distances.rightAlnRefStart, distances.leftAlnRefEnd);
             dupSeqRepeatNumOnRef      = 1;
             dupSeqRepeatNumOnCtg      = 2;
@@ -595,13 +604,13 @@ public abstract class BreakpointComplications {
 
         private void resolveComplicationForSimpleTandupContraction(final SimpleChimera simpleChimera,
                                                                    final DistancesBetweenAlignmentsOnRefAndOnRead distances,
-                                                                   final byte[] contigSeq, final boolean oneAfterTwo) {
+                                                                   final byte[] contigSeq, final boolean firstAfterSecond) {
             final SimpleInterval leftReferenceInterval;
             if (simpleChimera.isForwardStrandRepresentation)
                 leftReferenceInterval = simpleChimera.regionWithLowerCoordOnContig.referenceSpan;
             else
                 leftReferenceInterval = simpleChimera.regionWithHigherCoordOnContig.referenceSpan;
-            homologyForwardStrandRep = inferHomology(simpleChimera.regionWithLowerCoordOnContig, simpleChimera.regionWithHigherCoordOnContig, contigSeq, oneAfterTwo);
+            homologyForwardStrandRep = inferHomology(simpleChimera.regionWithLowerCoordOnContig, simpleChimera.regionWithHigherCoordOnContig, contigSeq, firstAfterSecond);
             dupSeqRepeatUnitRefSpan  = new SimpleInterval(leftReferenceInterval.getContig(), distances.leftAlnRefEnd - ( distances.firstAlnCtgEnd - distances.secondAlnCtgStart ), distances.leftAlnRefEnd);
             dupSeqRepeatNumOnRef     = 2;
             dupSeqRepeatNumOnCtg     = 1;
@@ -611,15 +620,6 @@ public abstract class BreakpointComplications {
         }
 
 
-        private SmallDuplicationWithPreciseDupRangeBreakpointComplications(final Kryo kryo, final Input input) {
-            super(kryo, input);
-
-            final int cigarCounts = input.readInt();
-            cigarStringsForDupSeqOnCtg = new ArrayList<>(cigarCounts);
-            for(int i = 0; i < cigarCounts; ++i) {
-                cigarStringsForDupSeqOnCtg.add(input.readString());
-            }
-        }
         protected void serialize(final Kryo kryo, final Output output) {
             super.serialize(kryo, output);
             output.writeInt(cigarStringsForDupSeqOnCtg.size());
@@ -678,6 +678,14 @@ public abstract class BreakpointComplications {
             this.impreciseDupAffectedRefRange = impreciseDupAffectedRefRange;
         }
 
+        private SmallDuplicationWithImpreciseDupRangeBreakpointComplications(final Kryo kryo, final Input input) {
+            super(kryo, input);
+            final String chr = input.readString();
+            final int start = input.readInt();
+            final int end = input.readInt();
+            impreciseDupAffectedRefRange = new SimpleInterval(chr, start, end);
+        }
+
         @Override
         public final String toString() {
             return super.toString() + "\timprecise:" ;
@@ -691,7 +699,7 @@ public abstract class BreakpointComplications {
             return parentAttributesToBeFilled;
         }
 
-        SmallDuplicationWithImpreciseDupRangeBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
+        SmallDuplicationWithImpreciseDupRangeBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
             final DistancesBetweenAlignmentsOnRefAndOnRead distances = simpleChimera.getDistancesBetweenAlignmentsOnRefAndOnRead();
 
             if (distances.gapBetweenAlignRegionsOnRef > 0)
@@ -721,7 +729,7 @@ public abstract class BreakpointComplications {
                     - duplicationComplication.repeatedSeqLen * duplicationComplication.lowerRepeatNumberEstimate
                     + 1;
             final int repeatUnitSpanEnd   = repeatUnitSpanStart + duplicationComplication.repeatedSeqLen - 1;
-            homologyForwardStrandRep      = inferHomology(simpleChimera.regionWithLowerCoordOnContig, simpleChimera.regionWithHigherCoordOnContig, contigSeq, oneAfterTwo);
+            homologyForwardStrandRep      = inferHomology(simpleChimera.regionWithLowerCoordOnContig, simpleChimera.regionWithHigherCoordOnContig, contigSeq, firstAfterSecond);
 
             dupSeqRepeatUnitRefSpan       = new SimpleInterval(simpleChimera.regionWithLowerCoordOnContig.referenceSpan.getContig(), repeatUnitSpanStart, repeatUnitSpanEnd);
             dupSeqRepeatNumOnRef          = isExpansion ? duplicationComplication.lowerRepeatNumberEstimate
@@ -856,14 +864,6 @@ public abstract class BreakpointComplications {
             }
         }
 
-        private SmallDuplicationWithImpreciseDupRangeBreakpointComplications(final Kryo kryo, final Input input) {
-            super(kryo, input);
-            final String chr = input.readString();
-            final int start = input.readInt();
-            final int end = input.readInt();
-            impreciseDupAffectedRefRange = new SimpleInterval(chr, start, end);
-        }
-
         protected void serialize(final Kryo kryo, final Output output) {
             super.serialize(kryo, output);
             output.writeString(impreciseDupAffectedRefRange.getContig());
@@ -913,11 +913,11 @@ public abstract class BreakpointComplications {
             super(homologyForwardStrandRep, insertedSequenceForwardStrandRep);
         }
 
-        protected BNDTypeBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
+        protected BNDTypeBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
             homologyForwardStrandRep = inferHomology(simpleChimera.regionWithLowerCoordOnContig,
-                                                    simpleChimera.regionWithHigherCoordOnContig, contigSeq, oneAfterTwo);
+                                                    simpleChimera.regionWithHigherCoordOnContig, contigSeq, firstAfterSecond);
             insertedSequenceForwardStrandRep = inferInsertedSequence(simpleChimera.regionWithLowerCoordOnContig,
-                                                                    simpleChimera.regionWithHigherCoordOnContig, contigSeq, oneAfterTwo);
+                                                                    simpleChimera.regionWithHigherCoordOnContig, contigSeq, firstAfterSecond);
         }
 
         protected BNDTypeBreakpointComplications(final Kryo kryo, final Input input) {
@@ -933,7 +933,55 @@ public abstract class BreakpointComplications {
      * For novel adjacency between reference locations that are
      * on the same chromosome, and with a strand switch.
      *
-     * todo:
+     * But the the signaling simple chimera cannot have its alignment overlap on reference.
+     * If they do, {@link InvertedDuplicationBreakpointComplications}.
+     *
+     */
+    @DefaultSerializer(IntraChrStrandSwitchBreakpointComplications.Serializer.class)
+    public static final class IntraChrStrandSwitchBreakpointComplications extends BNDTypeBreakpointComplications {
+
+        //works for constructing a simple inversion breakpoint, without any duplication annotations for inverted duplications.
+        @VisibleForTesting
+        IntraChrStrandSwitchBreakpointComplications(final String homologyForwardStrandRep, final String insertedSequenceForwardStrandRep) {
+            super(homologyForwardStrandRep, insertedSequenceForwardStrandRep);
+        }
+
+        IntraChrStrandSwitchBreakpointComplications(final Kryo kryo, final Input input) {
+            super(kryo, input);
+        }
+
+        IntraChrStrandSwitchBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
+            resolveComplicationForSimpleStrandSwitch(simpleChimera, contigSeq, firstAfterSecond);
+//            if ( simpleChimera.isCandidateInvertedDuplication() ) {
+//                resolveComplicationForInvDup(simpleChimera, contigSeq, firstAfterSecond);
+//            } else {
+//                resolveComplicationForSimpleStrandSwitch(simpleChimera, contigSeq, firstAfterSecond);
+//            }
+        }
+
+        void resolveComplicationForSimpleStrandSwitch(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
+
+            final AlignmentInterval firstAlignmentInterval  = simpleChimera.regionWithLowerCoordOnContig;
+            final AlignmentInterval secondAlignmentInterval = simpleChimera.regionWithHigherCoordOnContig;
+
+            homologyForwardStrandRep = inferHomology(firstAlignmentInterval, secondAlignmentInterval, contigSeq, firstAfterSecond);
+            insertedSequenceForwardStrandRep = inferInsertedSequence(firstAlignmentInterval, secondAlignmentInterval, contigSeq, firstAfterSecond);
+        }
+
+        public static final class Serializer extends com.esotericsoftware.kryo.Serializer<IntraChrStrandSwitchBreakpointComplications> {
+            @Override
+            public void write(final Kryo kryo, final Output output, final IntraChrStrandSwitchBreakpointComplications breakpointComplications) {
+                breakpointComplications.serialize(kryo, output);
+            }
+
+            @Override
+            public IntraChrStrandSwitchBreakpointComplications read(final Kryo kryo, final Input input, final Class<IntraChrStrandSwitchBreakpointComplications> klass ) {
+                return new IntraChrStrandSwitchBreakpointComplications(kryo, input);
+            }
+        }
+    }
+
+    /**
      * For this specific complication, we support a what could be defined as incomplete picture,
      * that involves inverted duplication:
      *
@@ -952,9 +1000,7 @@ public abstract class BreakpointComplications {
      * {@link org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.AssemblyContigWithFineTunedAlignments#hasIncompletePictureFromTwoAlignments(AlignmentInterval, AlignmentInterval)}
      * the annotations are actually never used.
      */
-    @DefaultSerializer(IntraChrStrandSwitchBreakpointComplications.Serializer.class)
-    public static final class IntraChrStrandSwitchBreakpointComplications extends BNDTypeBreakpointComplications {
-
+    public static final class InvertedDuplicationBreakpointComplications extends BNDTypeBreakpointComplications {
         static final List<Strand> DEFAULT_INV_DUP_REF_ORIENTATION = Collections.singletonList(Strand.POSITIVE);
         static final List<Strand> DEFAULT_INV_DUP_CTG_ORIENTATIONS_FR = Arrays.asList(Strand.POSITIVE, Strand.NEGATIVE);
         static final List<Strand> DEFAULT_INV_DUP_CTG_ORIENTATIONS_RF = Arrays.asList(Strand.NEGATIVE, Strand.POSITIVE);
@@ -991,18 +1037,14 @@ public abstract class BreakpointComplications {
             return dupAnnotIsFromOptimization;
         }
 
+
         @VisibleForTesting
-        IntraChrStrandSwitchBreakpointComplications(final String homologyForwardStrandRep, final String insertedSequenceForwardStrandRep) {
-            this(homologyForwardStrandRep, insertedSequenceForwardStrandRep,
-                    null, 0, 0, null, null, null, false, null);
-        }
-        @VisibleForTesting
-        IntraChrStrandSwitchBreakpointComplications(final String homologyForwardStrandRep, final String insertedSequenceForwardStrandRep,
-                                                    final SimpleInterval dupSeqRepeatUnitRefSpan,
-                                                    final int dupSeqRepeatNumOnRef, final int dupSeqRepeatNumOnCtg,
-                                                    final List<Strand> dupSeqStrandOnRef, final List<Strand> dupSeqStrandOnCtg,
-                                                    final List<String> cigarStringsForDupSeqOnCtg, final boolean dupAnnotIsFromOptimization,
-                                                    final SimpleInterval invertedTransInsertionRefSpan) {
+        InvertedDuplicationBreakpointComplications(final String homologyForwardStrandRep, final String insertedSequenceForwardStrandRep,
+                                                   final SimpleInterval dupSeqRepeatUnitRefSpan,
+                                                   final int dupSeqRepeatNumOnRef, final int dupSeqRepeatNumOnCtg,
+                                                   final List<Strand> dupSeqStrandOnRef, final List<Strand> dupSeqStrandOnCtg,
+                                                   final List<String> cigarStringsForDupSeqOnCtg, final boolean dupAnnotIsFromOptimization,
+                                                   final SimpleInterval invertedTransInsertionRefSpan) {
             super(homologyForwardStrandRep, insertedSequenceForwardStrandRep);
             this.dupSeqRepeatUnitRefSpan = dupSeqRepeatUnitRefSpan;
             this.dupSeqRepeatNumOnRef = dupSeqRepeatNumOnRef;
@@ -1012,6 +1054,123 @@ public abstract class BreakpointComplications {
             this.cigarStringsForDupSeqOnCtg = cigarStringsForDupSeqOnCtg;
             this.dupAnnotIsFromOptimization = dupAnnotIsFromOptimization;
             this.invertedTransInsertionRefSpan = invertedTransInsertionRefSpan;
+        }
+
+        InvertedDuplicationBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
+            resolveComplicationForInvDup(simpleChimera, contigSeq, firstAfterSecond);
+        }
+
+        InvertedDuplicationBreakpointComplications(final Kryo kryo, final Input input) {
+            super(kryo, input);
+            String ctg = input.readString();
+            int start = input.readInt();
+            int end = input.readInt();
+            dupSeqRepeatUnitRefSpan = new SimpleInterval(ctg, start, end);
+            dupSeqRepeatNumOnRef = input.readInt();
+            dupSeqRepeatNumOnCtg = input.readInt();
+            dupSeqStrandOnRef = new ArrayList<>(dupSeqRepeatNumOnRef);
+            for (int i=0; i<dupSeqRepeatNumOnRef; ++i) {
+                dupSeqStrandOnRef.add(Strand.values()[input.readInt()]);
+            }
+            dupSeqStrandOnCtg = new ArrayList<>(dupSeqRepeatNumOnCtg);
+            for (int i=0; i<dupSeqRepeatNumOnCtg; ++i) {
+                dupSeqStrandOnCtg.add(Strand.values()[input.readInt()]);
+            }
+            final int cigarCounts = input.readInt();
+            cigarStringsForDupSeqOnCtg = new ArrayList<>(cigarCounts);
+            for(int i = 0; i < cigarCounts; ++i) {
+                cigarStringsForDupSeqOnCtg.add(input.readString());
+            }
+            dupAnnotIsFromOptimization = input.readBoolean();
+            if (input.readBoolean()) {
+                ctg = input.readString();
+                start = input.readInt();
+                end = input.readInt();
+                invertedTransInsertionRefSpan = new SimpleInterval(ctg, start, end);
+            }
+        }
+
+        /**
+         * Initialize the fields in this object, assuming the input chimeric alignment is induced by two alignments with
+         * "significant" (see {@link SimpleChimera#isCandidateInvertedDuplication()})
+         * overlap on their reference spans.
+         */
+        private void resolveComplicationForInvDup(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
+
+            final AlignmentInterval firstAlignmentInterval  = simpleChimera.regionWithLowerCoordOnContig;
+            final AlignmentInterval secondAlignmentInterval = simpleChimera.regionWithHigherCoordOnContig;
+
+            // TODO: 8/8/17 this might be wrong regarding how strand is involved, fix it
+            insertedSequenceForwardStrandRep = inferInsertedSequence(firstAlignmentInterval, secondAlignmentInterval, contigSeq, firstAfterSecond);
+
+            dupSeqRepeatNumOnRef = 1;
+            dupSeqRepeatNumOnCtg = 2;
+            dupSeqStrandOnRef = DEFAULT_INV_DUP_REF_ORIENTATION;
+
+            // jump start and jump landing locations
+            final int jumpStartRefLoc = firstAlignmentInterval.forwardStrand ? firstAlignmentInterval.referenceSpan.getEnd()
+                    : firstAlignmentInterval.referenceSpan.getStart();
+            final int jumpLandingRefLoc = secondAlignmentInterval.forwardStrand ? secondAlignmentInterval.referenceSpan.getStart()
+                    : secondAlignmentInterval.referenceSpan.getEnd();
+
+            if (firstAlignmentInterval.forwardStrand) {
+                final int alpha = firstAlignmentInterval.referenceSpan.getStart(),
+                        omega = secondAlignmentInterval.referenceSpan.getStart();
+                dupSeqRepeatUnitRefSpan = new SimpleInterval(firstAlignmentInterval.referenceSpan.getContig(),
+                        Math.max(alpha, omega), Math.min(jumpStartRefLoc, jumpLandingRefLoc));
+                if ( (alpha <= omega && jumpStartRefLoc < jumpLandingRefLoc) || (alpha > omega && jumpLandingRefLoc < jumpStartRefLoc) ) {
+                    invertedTransInsertionRefSpan = new SimpleInterval(firstAlignmentInterval.referenceSpan.getContig(),
+                            Math.min(jumpStartRefLoc, jumpLandingRefLoc) + 1, Math.max(jumpStartRefLoc, jumpLandingRefLoc));
+                }
+                dupSeqStrandOnCtg = DEFAULT_INV_DUP_CTG_ORIENTATIONS_FR;
+            } else {
+                final int alpha = firstAlignmentInterval.referenceSpan.getEnd(),
+                        omega = secondAlignmentInterval.referenceSpan.getEnd();
+                dupSeqRepeatUnitRefSpan = new SimpleInterval(firstAlignmentInterval.referenceSpan.getContig(),
+                        Math.max(jumpStartRefLoc, jumpLandingRefLoc), Math.min(alpha, omega));
+                if ( (alpha >= omega && jumpLandingRefLoc < jumpStartRefLoc) || (alpha < omega && jumpStartRefLoc < jumpLandingRefLoc) ) {
+                    invertedTransInsertionRefSpan = new SimpleInterval(firstAlignmentInterval.referenceSpan.getContig(),
+                            Math.min(jumpStartRefLoc, jumpLandingRefLoc) + 1, Math.max(jumpStartRefLoc, jumpLandingRefLoc));
+                }
+                dupSeqStrandOnCtg = DEFAULT_INV_DUP_CTG_ORIENTATIONS_RF;
+            }
+            // not computing cigars because alt haplotypes will be extracted
+            cigarStringsForDupSeqOnCtg = SmallDuplicationWithPreciseDupRangeBreakpointComplications.DEFAULT_CIGAR_STRINGS_FOR_DUP_SEQ_ON_CTG;
+
+            dupAnnotIsFromOptimization = false;
+        }
+
+        protected void serialize(final Kryo kryo, final Output output) {
+            super.serialize(kryo, output);
+
+            output.writeString(dupSeqRepeatUnitRefSpan.getContig());
+            output.writeInt(dupSeqRepeatUnitRefSpan.getStart());
+            output.writeInt(dupSeqRepeatUnitRefSpan.getEnd());
+            output.writeInt(dupSeqRepeatNumOnRef);
+            output.writeInt(dupSeqRepeatNumOnCtg);
+            dupSeqStrandOnRef.forEach(s -> output.writeInt(s.ordinal()));
+            dupSeqStrandOnCtg.forEach(s -> output.writeInt(s.ordinal()));
+            output.writeInt(cigarStringsForDupSeqOnCtg.size());
+            cigarStringsForDupSeqOnCtg.forEach(output::writeString);
+            output.writeBoolean(dupAnnotIsFromOptimization);
+            output.writeBoolean( invertedTransInsertionRefSpan != null );
+            if (invertedTransInsertionRefSpan != null) {
+                output.writeString(invertedTransInsertionRefSpan.getContig());
+                output.writeInt(invertedTransInsertionRefSpan.getStart());
+                output.writeInt(invertedTransInsertionRefSpan.getEnd());
+            }
+        }
+
+        public static final class Serializer extends com.esotericsoftware.kryo.Serializer<InvertedDuplicationBreakpointComplications> {
+            @Override
+            public void write(final Kryo kryo, final Output output, final InvertedDuplicationBreakpointComplications breakpointComplications) {
+                breakpointComplications.serialize(kryo, output);
+            }
+
+            @Override
+            public InvertedDuplicationBreakpointComplications read(final Kryo kryo, final Input input, final Class<InvertedDuplicationBreakpointComplications> klass ) {
+                return new InvertedDuplicationBreakpointComplications(kryo, input);
+            }
         }
 
         @Override
@@ -1036,159 +1195,12 @@ public abstract class BreakpointComplications {
         }
 
         @Override
-        public boolean hasDuplicationAnnotation() {
-            return dupSeqRepeatUnitRefSpan != null;
-        }
-
-        IntraChrStrandSwitchBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
-            if ( simpleChimera.isCandidateInvertedDuplication() ) {
-                resolveComplicationForInvDup(simpleChimera, contigSeq, oneAfterTwo);
-            } else {
-                resolveComplicationForSimpleStrandSwitch(simpleChimera, contigSeq, oneAfterTwo);
-            }
-        }
-
-        void resolveComplicationForSimpleStrandSwitch(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
-
-            final AlignmentInterval firstAlignmentInterval  = simpleChimera.regionWithLowerCoordOnContig;
-            final AlignmentInterval secondAlignmentInterval = simpleChimera.regionWithHigherCoordOnContig;
-
-            homologyForwardStrandRep = inferHomology(firstAlignmentInterval, secondAlignmentInterval, contigSeq, oneAfterTwo);
-            insertedSequenceForwardStrandRep = inferInsertedSequence(firstAlignmentInterval, secondAlignmentInterval, contigSeq, oneAfterTwo);
-        }
-
-        /**
-         * Initialize the fields in this object, assuming the input chimeric alignment is induced by two alignments with
-         * "significant" (see {@link SimpleChimera#isCandidateInvertedDuplication()})
-         * overlap on their reference spans.
-         */
-        private void resolveComplicationForInvDup(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
-
-            final AlignmentInterval firstAlignmentInterval  = simpleChimera.regionWithLowerCoordOnContig;
-            final AlignmentInterval secondAlignmentInterval = simpleChimera.regionWithHigherCoordOnContig;
-
-            // TODO: 8/8/17 this might be wrong regarding how strand is involved, fix it
-            insertedSequenceForwardStrandRep = inferInsertedSequence(firstAlignmentInterval, secondAlignmentInterval, contigSeq, oneAfterTwo);
-
-            dupSeqRepeatNumOnRef = 1;
-            dupSeqRepeatNumOnCtg = 2;
-            dupSeqStrandOnRef = DEFAULT_INV_DUP_REF_ORIENTATION;
-
-            // jump start and jump landing locations
-            final int jumpStartRefLoc = firstAlignmentInterval.forwardStrand ? firstAlignmentInterval.referenceSpan.getEnd()
-                                                                             : firstAlignmentInterval.referenceSpan.getStart();
-            final int jumpLandingRefLoc = secondAlignmentInterval.forwardStrand ? secondAlignmentInterval.referenceSpan.getStart()
-                                                                                : secondAlignmentInterval.referenceSpan.getEnd();
-
-            if (firstAlignmentInterval.forwardStrand) {
-                final int alpha = firstAlignmentInterval.referenceSpan.getStart(),
-                          omega = secondAlignmentInterval.referenceSpan.getStart();
-                dupSeqRepeatUnitRefSpan = new SimpleInterval(firstAlignmentInterval.referenceSpan.getContig(),
-                        Math.max(alpha, omega), Math.min(jumpStartRefLoc, jumpLandingRefLoc));
-                if ( (alpha <= omega && jumpStartRefLoc < jumpLandingRefLoc) || (alpha > omega && jumpLandingRefLoc < jumpStartRefLoc) ) {
-                    invertedTransInsertionRefSpan = new SimpleInterval(firstAlignmentInterval.referenceSpan.getContig(),
-                            Math.min(jumpStartRefLoc, jumpLandingRefLoc) + 1, Math.max(jumpStartRefLoc, jumpLandingRefLoc));
-                }
-                dupSeqStrandOnCtg = DEFAULT_INV_DUP_CTG_ORIENTATIONS_FR;
-            } else {
-                final int alpha = firstAlignmentInterval.referenceSpan.getEnd(),
-                          omega = secondAlignmentInterval.referenceSpan.getEnd();
-                dupSeqRepeatUnitRefSpan = new SimpleInterval(firstAlignmentInterval.referenceSpan.getContig(),
-                        Math.max(jumpStartRefLoc, jumpLandingRefLoc), Math.min(alpha, omega));
-                if ( (alpha >= omega && jumpLandingRefLoc < jumpStartRefLoc) || (alpha < omega && jumpStartRefLoc < jumpLandingRefLoc) ) {
-                    invertedTransInsertionRefSpan = new SimpleInterval(firstAlignmentInterval.referenceSpan.getContig(),
-                            Math.min(jumpStartRefLoc, jumpLandingRefLoc) + 1, Math.max(jumpStartRefLoc, jumpLandingRefLoc));
-                }
-                dupSeqStrandOnCtg = DEFAULT_INV_DUP_CTG_ORIENTATIONS_RF;
-            }
-            // not computing cigars because alt haplotypes will be extracted
-            cigarStringsForDupSeqOnCtg = SmallDuplicationWithPreciseDupRangeBreakpointComplications.DEFAULT_CIGAR_STRINGS_FOR_DUP_SEQ_ON_CTG;
-
-            dupAnnotIsFromOptimization = false;
-        }
-
-        IntraChrStrandSwitchBreakpointComplications(final Kryo kryo, final Input input) {
-            super(kryo, input);
-
-            if ( input.readBoolean() ) {
-                String ctg = input.readString();
-                int start = input.readInt();
-                int end = input.readInt();
-                dupSeqRepeatUnitRefSpan = new SimpleInterval(ctg, start, end);
-                dupSeqRepeatNumOnRef = input.readInt();
-                dupSeqRepeatNumOnCtg = input.readInt();
-                dupSeqStrandOnRef = new ArrayList<>(dupSeqRepeatNumOnRef);
-                for (int i=0; i<dupSeqRepeatNumOnRef; ++i) {
-                    dupSeqStrandOnRef.add(Strand.values()[input.readInt()]);
-                }
-                dupSeqStrandOnCtg = new ArrayList<>(dupSeqRepeatNumOnCtg);
-                for (int i=0; i<dupSeqRepeatNumOnCtg; ++i) {
-                    dupSeqStrandOnCtg.add(Strand.values()[input.readInt()]);
-                }
-                final int cigarCounts = input.readInt();
-                cigarStringsForDupSeqOnCtg = new ArrayList<>(cigarCounts);
-                for(int i = 0; i < cigarCounts; ++i) {
-                    cigarStringsForDupSeqOnCtg.add(input.readString());
-                }
-                dupAnnotIsFromOptimization = input.readBoolean();
-                if (input.readBoolean()) {
-                    ctg = input.readString();
-                    start = input.readInt();
-                    end = input.readInt();
-                    invertedTransInsertionRefSpan = new SimpleInterval(ctg, start, end);
-                }
-            } else {
-                dupSeqRepeatUnitRefSpan = null;
-                dupSeqRepeatNumOnRef = 0;
-                dupSeqRepeatNumOnCtg = 0;
-                dupSeqStrandOnRef = null;
-                dupSeqStrandOnCtg = null;
-                cigarStringsForDupSeqOnCtg = null;
-                dupAnnotIsFromOptimization = false;
-                invertedTransInsertionRefSpan = null;
-            }
-        }
-        protected void serialize(final Kryo kryo, final Output output) {
-            super.serialize(kryo, output);
-
-            output.writeBoolean(dupSeqRepeatUnitRefSpan != null);
-            if (dupSeqRepeatUnitRefSpan != null) {
-                output.writeString(dupSeqRepeatUnitRefSpan.getContig());
-                output.writeInt(dupSeqRepeatUnitRefSpan.getStart());
-                output.writeInt(dupSeqRepeatUnitRefSpan.getEnd());
-                output.writeInt(dupSeqRepeatNumOnRef);
-                output.writeInt(dupSeqRepeatNumOnCtg);
-                dupSeqStrandOnRef.forEach(s -> output.writeInt(s.ordinal()));
-                dupSeqStrandOnCtg.forEach(s -> output.writeInt(s.ordinal()));
-                output.writeInt(cigarStringsForDupSeqOnCtg.size());
-                cigarStringsForDupSeqOnCtg.forEach(output::writeString);
-                output.writeBoolean(dupAnnotIsFromOptimization);
-                output.writeBoolean( invertedTransInsertionRefSpan != null );
-                if (invertedTransInsertionRefSpan != null) {
-                    output.writeString(invertedTransInsertionRefSpan.getContig());
-                    output.writeInt(invertedTransInsertionRefSpan.getStart());
-                    output.writeInt(invertedTransInsertionRefSpan.getEnd());
-                }
-            }
-        }
-        public static final class Serializer extends com.esotericsoftware.kryo.Serializer<IntraChrStrandSwitchBreakpointComplications> {
-            @Override
-            public void write(final Kryo kryo, final Output output, final IntraChrStrandSwitchBreakpointComplications breakpointComplications) {
-                breakpointComplications.serialize(kryo, output);
-            }
-
-            @Override
-            public IntraChrStrandSwitchBreakpointComplications read(final Kryo kryo, final Input input, final Class<IntraChrStrandSwitchBreakpointComplications> klass ) {
-                return new IntraChrStrandSwitchBreakpointComplications(kryo, input);
-            }
-        }
-        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             if (!super.equals(o)) return false;
 
-            IntraChrStrandSwitchBreakpointComplications that = (IntraChrStrandSwitchBreakpointComplications) o;
+            InvertedDuplicationBreakpointComplications that = (InvertedDuplicationBreakpointComplications) o;
 
             if (dupSeqRepeatNumOnRef != that.dupSeqRepeatNumOnRef) return false;
             if (dupSeqRepeatNumOnCtg != that.dupSeqRepeatNumOnCtg) return false;
@@ -1245,8 +1257,8 @@ public abstract class BreakpointComplications {
             super(homologyForwardStrandRep, insertedSequenceForwardStrandRep);
         }
 
-        IntraChrRefOrderSwapBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
-            super(simpleChimera, contigSeq, oneAfterTwo);
+        IntraChrRefOrderSwapBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
+            super(simpleChimera, contigSeq, firstAfterSecond);
         }
 
         private IntraChrRefOrderSwapBreakpointComplications(final Kryo kryo, final Input input) {
@@ -1281,8 +1293,8 @@ public abstract class BreakpointComplications {
             super(homologyForwardStrandRep, insertedSequenceForwardStrandRep);
         }
 
-        InterChromosomeBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean oneAfterTwo) {
-            super(simpleChimera, contigSeq, oneAfterTwo);
+        InterChromosomeBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
+            super(simpleChimera, contigSeq, firstAfterSecond);
         }
 
         private InterChromosomeBreakpointComplications(final Kryo kryo, final Input input) {

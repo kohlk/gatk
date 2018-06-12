@@ -91,7 +91,7 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
     private static String makeID(final String prefix, final String chr1, final int start, final String chr2, final int stop,
                                  final String postfix) {
         return prefix + INTERVAL_VARIANT_ID_FIELD_SEPARATOR +
-                SvType.makeLocationPartOfID(chr1, start, chr2, stop) +
+                SvType.makeLocationString(chr1, start, chr2, stop) +
                 (postfix.isEmpty() ? "" : INTERVAL_VARIANT_ID_FIELD_SEPARATOR + postfix);
     }
 
