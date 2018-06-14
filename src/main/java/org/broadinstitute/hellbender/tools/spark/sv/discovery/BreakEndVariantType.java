@@ -39,6 +39,15 @@ public abstract class BreakEndVariantType extends SvType {
     }
 
     @Override
+    public final boolean hasApplicableEnd() {
+        return false;
+    }
+    @Override
+    public final boolean hasApplicableLength() {
+        return false;
+    }
+
+    @Override
     public final String toString() {
         return BREAKEND_STR;
     }
@@ -121,11 +130,7 @@ public abstract class BreakEndVariantType extends SvType {
         @VisibleForTesting
         static String extractInsertedSequence(final NovelAdjacencyAndAltHaplotype narl, final boolean forUpstreamLoc) {
             final String ins = narl.getComplication().getInsertedSequenceForwardStrandRep();
-            if (ins.isEmpty()) {
-                return ins;
-            } else {
-                return forUpstreamLoc ? ins : SequenceUtil.reverseComplement(ins);
-            }
+            return forUpstreamLoc ? ins : SequenceUtil.reverseComplement(ins);
         }
     }
 

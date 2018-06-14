@@ -9,6 +9,7 @@ import org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.NovelAdj
 import org.broadinstitute.hellbender.tools.spark.sv.evidence.EvidenceTargetLink;
 import org.broadinstitute.hellbender.tools.spark.sv.evidence.ReadMetadata;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.GATKSVVCFConstants;
+import org.broadinstitute.hellbender.tools.spark.sv.utils.SVInterval;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 
 import java.util.Collections;
@@ -22,6 +23,15 @@ public abstract class SimpleSVType extends SvType {
     protected SimpleSVType(final String variantCHR, final int variantPOS, final int variantEND, final String variantId,
                            final Allele refAllele, final Allele altAllele, final int svLen, final Map<String, Object> extraAttributes) {
         super(variantCHR, variantPOS, variantEND, variantId, refAllele, altAllele, svLen, extraAttributes);
+    }
+
+    @Override
+    public final boolean hasApplicableEnd() {
+        return true;
+    }
+    @Override
+    public final boolean hasApplicableLength() {
+        return true;
     }
 
     public enum SupportedType {
@@ -58,9 +68,6 @@ public abstract class SimpleSVType extends SvType {
         }
 
         private static String getIDString(final NovelAdjacencyAndAltHaplotype novelAdjacencyAndAltHaplotype) {
-            final String contig = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getContig();
-            final int start = novelAdjacencyAndAltHaplotype.getLeftJustifiedLeftRefLoc().getEnd();
-            final int end = novelAdjacencyAndAltHaplotype.getLeftJustifiedRightRefLoc().getStart();
             final StrandSwitch strandSwitch = novelAdjacencyAndAltHaplotype.getStrandSwitch();
 
             return (strandSwitch.equals(StrandSwitch.FORWARD_TO_REVERSE) ? GATKSVVCFConstants.INV55 : GATKSVVCFConstants.INV33) + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR +
@@ -219,25 +226,26 @@ public abstract class SimpleSVType extends SvType {
 
         private static byte[] getRefBases(final EvidenceTargetLink evidenceTargetLink, final ReadMetadata metadata,
                                           final ReferenceMultiSource reference) {
+            final SVInterval leftInterval = evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval();
             return extractRefBases(
-                    new SimpleInterval(metadata.getContigName(evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval().getContig()),
-                            evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval().midpoint(),
-                            evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval().midpoint()),
+                    new SimpleInterval(metadata.getContigName(leftInterval.getContig()), leftInterval.midpoint(), leftInterval.midpoint()),
                     reference
             );
         }
 
         private static String getIDString(final EvidenceTargetLink evidenceTargetLink, final ReadMetadata metadata) {
+            final SVInterval leftInterval = evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval();
+            final SVInterval rightInterval = evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval();
 
             return SupportedType.DEL.name()
                     + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
                     + GATKSVVCFConstants.IMPRECISE + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
-                    + metadata.getContigName(evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval().getContig())
+                    + metadata.getContigName(leftInterval.getContig())
                     + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
-                    + evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval().getStart() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
-                    + evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval().getEnd() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
-                    + evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval().getStart() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
-                    + evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval().getEnd();
+                    + leftInterval.getStart() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
+                    + leftInterval.getEnd() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
+                    + rightInterval.getStart() + GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR
+                    + rightInterval.getEnd();
         }
     }
 

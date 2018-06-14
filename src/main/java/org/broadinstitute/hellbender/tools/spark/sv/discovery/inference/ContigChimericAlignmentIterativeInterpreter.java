@@ -37,7 +37,6 @@ import static org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDi
  */
 public class ContigChimericAlignmentIterativeInterpreter {
 
-    @Deprecated
     public static List<VariantContext> discoverVariantsFromChimeras(final SvDiscoveryInputMetaData svDiscoveryInputMetaData,
                                                                     final JavaRDD<AlignedContig> alignedContigs) {
 

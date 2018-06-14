@@ -301,7 +301,7 @@ public abstract class BreakpointComplications {
      * NOTE THAT this does not handle case when one of the duplication copy is inverted;
      * for that see {@link IntraChrStrandSwitchBreakpointComplications} (possibly partially).
      */
-    abstract public static class SmallDuplicationBreakpointComplications extends BreakpointComplications {
+    public abstract static class SmallDuplicationBreakpointComplications extends BreakpointComplications {
 
         protected SimpleInterval dupSeqRepeatUnitRefSpan = null;
         protected int dupSeqRepeatNumOnRef = 0;
@@ -952,11 +952,6 @@ public abstract class BreakpointComplications {
 
         IntraChrStrandSwitchBreakpointComplications(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {
             resolveComplicationForSimpleStrandSwitch(simpleChimera, contigSeq, firstAfterSecond);
-//            if ( simpleChimera.isCandidateInvertedDuplication() ) {
-//                resolveComplicationForInvDup(simpleChimera, contigSeq, firstAfterSecond);
-//            } else {
-//                resolveComplicationForSimpleStrandSwitch(simpleChimera, contigSeq, firstAfterSecond);
-//            }
         }
 
         void resolveComplicationForSimpleStrandSwitch(final SimpleChimera simpleChimera, final byte[] contigSeq, final boolean firstAfterSecond) {

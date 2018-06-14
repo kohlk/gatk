@@ -222,7 +222,7 @@ public class NovelAdjacencyAndAltHaplotype {
         if (isCandidateForFatInsertion()) {
             return new SimpleInterval(leftJustifiedLeftRefLoc.getContig(), leftJustifiedLeftRefLoc.getStart(), leftJustifiedRightRefLoc.getEnd());
         } else
-            throw new UnsupportedOperationException("trying to get interval from a novel adjacency that is no a fat insertion: " + toString());
+            throw new UnsupportedOperationException("trying to get interval from a novel adjacency that is not a fat insertion: " + toString());
     }
 
     /**

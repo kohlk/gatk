@@ -35,6 +35,7 @@ import org.broadinstitute.hellbender.utils.read.GATKRead;
 import scala.Tuple2;
 
 import java.io.Serializable;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -140,7 +141,7 @@ public final class SvDiscoverFromLocalAssemblyContigAlignmentsSpark extends GATK
         final Broadcast<SVIntervalTree<VariantContext>> cnvCallsBroadcast =
                 StructuralVariationDiscoveryPipelineSpark.broadcastCNVCalls(ctx, getHeaderForReads(),
                         discoverStageArgs.cnvCallsFile);
-        final String outputPrefixWithSampleName = getOutputPrefixWithSampleNameAndTrailingUnderscore();
+        final String outputPrefixWithSampleName = getOutputPrefix();
         final SvDiscoveryInputMetaData svDiscoveryInputMetaData =
                 new SvDiscoveryInputMetaData(ctx, discoverStageArgs, nonCanonicalChromosomeNamesFile, outputPrefixWithSampleName,
                         null, null, null,
@@ -154,9 +155,12 @@ public final class SvDiscoverFromLocalAssemblyContigAlignmentsSpark extends GATK
         dispatchJobs(ctx, contigsByPossibleRawTypes, svDiscoveryInputMetaData, assemblyRawAlignments, writeSAMFiles);
     }
 
-    private String getOutputPrefixWithSampleNameAndTrailingUnderscore() {
-        if ( java.nio.file.Files.exists(Paths.get(outputPrefix)) ) {
-            if (java.nio.file.Files.isDirectory(Paths.get(outputPrefix))) // existing directory
+    /**
+     * @return prefix of outputs, with {@link #outputPrefix} decorated with sample name and trailing underscore
+     */
+    private String getOutputPrefix() {
+        if ( Files.exists(Paths.get(outputPrefix)) ) {
+            if (Files.isDirectory(Paths.get(outputPrefix))) // existing directory
                 return outputPrefix + (outputPrefix.endsWith("/") ? "" : "/") + SVUtils.getSampleId(getHeaderForReads()) + "_";
             else
                 throw new UserException("Provided prefix for output is pointing to an existing file: " + outputPrefix); // to avoid accidental override of a file

@@ -338,11 +338,12 @@ final class CpxVariantCanonicalRepresentation {
             // it must be one of two cases:
             //   1) the base (and possibly following bases) immediately after (or before if reverse strand) the head alignment's ref span is deleted
             //   2) there are bases on the read immediately after the head alignment uncovered by selected alignments, i.e. unmapped insertion
-            final boolean expectedCase = basicInfo.forwardStrandRep ? (firstSegment.getStart() - head.referenceSpan.getEnd() == 1)
-                                                                    : (head.referenceSpan.getStart() - firstSegment.getEnd() == 1);
-            if ( ! expectedCase )
-                throw new CpxVariantInterpreter.UnhandledCaseSeen("1st segment is not overlapping with head alignment but it is not immediately before/after the head alignment either\n"
-                        + tigWithInsMappings.toString() + "\nSegments:\t" + segments.toString());
+            final boolean firstSegmentNeighborsHeadAlignment = basicInfo.forwardStrandRep ? (firstSegment.getStart() - head.referenceSpan.getEnd() == 1)
+                                                                                          : (head.referenceSpan.getStart() - firstSegment.getEnd() == 1);
+            if ( ! firstSegmentNeighborsHeadAlignment )
+                throw new CpxVariantInterpreter.UnhandledCaseSeen(
+                        "1st segment is not overlapping with head alignment but it is not immediately before/after the head alignment either\n"
+                                + tigWithInsMappings.toString() + "\nSegments:\t" + segments.toString());
             start = head.endInAssembledContig;
         } else {
             final SimpleInterval intersect = firstSegment.intersect(head.referenceSpan);

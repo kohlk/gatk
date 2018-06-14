@@ -12,7 +12,6 @@ import org.broadinstitute.hellbender.utils.SimpleInterval;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.broadinstitute.hellbender.tools.spark.sv.utils.GATKSVVCFConstants.INTERVAL_VARIANT_ID_FIELD_SEPARATOR;
 
@@ -27,9 +26,10 @@ public abstract class SvType {
     public static final int NO_APPLICABLE_END = -1;
     public static final int NO_APPLICABLE_LEN = -1;
 
-    protected final String variantCHR;
-    protected final int variantPOS;
-    protected final int variantEND;
+    // fields whose name starts with "variant" are following the VCF spec, i.e. they can be used directly to construct VariantContextBuilder
+    protected final String variantChromosome;
+    protected final int variantStart;
+    protected final int variantStop;
     protected final String variantId;
     protected final Allele refAllele;
     protected final Allele altAllele;
@@ -38,11 +38,11 @@ public abstract class SvType {
 
     protected static final Map<String, Object> noExtraAttributes = Collections.emptyMap();
 
-    public SvType(final String variantCHR, final int variantPOS, final int variantEND, final String variantId,
+    public SvType(final String variantChromosome, final int variantStart, final int variantStop, final String variantId,
                   final Allele refAllele, final Allele altAllele, final int svLen, final Map<String, Object> typeSpecificAttributes) {
-        this.variantCHR = variantCHR;
-        this.variantPOS = variantPOS;
-        this.variantEND = variantEND;
+        this.variantChromosome = variantChromosome;
+        this.variantStart = variantStart;
+        this.variantStop = variantStop;
         this.variantId = variantId;
         this.refAllele = refAllele;
         this.altAllele = altAllele;
@@ -51,9 +51,9 @@ public abstract class SvType {
     }
 
     public final VariantContextBuilder getBasicInformation() {
-        if (variantEND == NO_APPLICABLE_END) {
+        if ( ! hasApplicableEnd() ) {
             VariantContextBuilder builder = new VariantContextBuilder()
-                    .chr(variantCHR).start(variantPOS).stop(variantPOS)
+                    .chr(variantChromosome).start(variantStart).stop(variantStart)
                     .id(variantId)
                     .alleles(new ArrayList<>(Arrays.asList(refAllele, altAllele)))
                     .attribute(GATKSVVCFConstants.SVTYPE, toString());
@@ -61,10 +61,10 @@ public abstract class SvType {
             return builder;
         } else { // assuming if there's valid END, there must be valid SVLEN
             VariantContextBuilder builder = new VariantContextBuilder()
-                    .chr(variantCHR).start(variantPOS).stop(variantEND)
+                    .chr(variantChromosome).start(variantStart).stop(variantStop)
                     .id(variantId)
                     .alleles(new ArrayList<>(Arrays.asList(refAllele, altAllele)))
-                    .attribute(VCFConstants.END_KEY, variantEND)
+                    .attribute(VCFConstants.END_KEY, variantStop)
                     .attribute(GATKSVVCFConstants.SVTYPE, toString())
                     .attribute(GATKSVVCFConstants.SVLEN, svLen);
             typeSpecificAttributes.forEach(builder::attribute);
@@ -72,14 +72,14 @@ public abstract class SvType {
         }
     }
 
-    public String getVariantCHR() {
-        return variantCHR;
+    public String getVariantChromosome() {
+        return variantChromosome;
     }
-    public int getVariantPOS() {
-        return variantPOS;
+    public int getVariantStart() {
+        return variantStart;
     }
-    public int getVariantEND() {
-        return variantEND;
+    public int getVariantStop() {
+        return variantStop;
     }
     public final String getInternalVariantId() {
         return variantId;
@@ -96,6 +96,9 @@ public abstract class SvType {
     public final Map<String, Object> getTypeSpecificAttributes() {
         return typeSpecificAttributes;
     }
+
+    public abstract boolean hasApplicableEnd();
+    public abstract boolean hasApplicableLength();
 
     @Override
     public boolean equals(final Object o) {

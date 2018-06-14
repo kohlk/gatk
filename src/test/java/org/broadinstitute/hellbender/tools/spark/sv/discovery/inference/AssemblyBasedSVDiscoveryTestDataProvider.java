@@ -63,14 +63,14 @@ public abstract class AssemblyBasedSVDiscoveryTestDataProvider {
             this.expectedInferencerClass = expectedInferencerClass;
         }
 
-        abstract public SAMSequenceDictionary getAppropriateDictionary();
+        public abstract SAMSequenceDictionary getAppropriateDictionary();
 
-        abstract public ReferenceMultiSource getAppropriateRef();
+        public abstract ReferenceMultiSource getAppropriateRef();
 
-        abstract public Class<? extends BreakpointsInference> getAppropriateBreakpointInferencer();
+        public abstract Class<? extends BreakpointsInference> getAppropriateBreakpointInferencer();
     }
 
-    abstract public List<AssemblyBasedSVDiscoveryTestDataForSimpleChimera> getAllTestData();
+    public abstract List<AssemblyBasedSVDiscoveryTestDataForSimpleChimera> getAllTestData();
 
     // same event, two representations from opposite strands
     public final List<Tuple2<AssemblyBasedSVDiscoveryTestDataForSimpleChimera, AssemblyBasedSVDiscoveryTestDataForSimpleChimera>> getAllTestDataPaired() {

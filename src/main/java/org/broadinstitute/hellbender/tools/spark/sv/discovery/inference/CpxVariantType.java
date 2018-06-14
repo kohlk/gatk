@@ -29,6 +29,15 @@ final class CpxVariantType extends SvType {
                 typeSpecificExtraAttributes);
     }
 
+    @Override
+    public final boolean hasApplicableEnd() {
+        return true;
+    }
+    @Override
+    public final boolean hasApplicableLength() {
+        return true;
+    }
+
     private static String getIDString(final SimpleInterval affectedRefRegion) {
         return CPX_SV_SYB_ALT_ALLELE_STR + INTERVAL_VARIANT_ID_FIELD_SEPARATOR +
                 affectedRefRegion.toString();

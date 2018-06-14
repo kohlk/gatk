@@ -20,10 +20,12 @@ import org.broadinstitute.hellbender.engine.spark.GATKSparkTool;
 import org.broadinstitute.hellbender.exceptions.UserException;
 import org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryPipelineSpark;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.AlignedContig;
+import org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.ContigChimericAlignmentIterativeInterpreter;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVIntervalTree;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVUtils;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.SVVCFWriter;
 
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
@@ -137,9 +139,8 @@ public final class DiscoverVariantsFromContigAlignmentsSAMSpark extends GATKSpar
                         .getAlignedContigs();
 
         // assembly-based breakpoints
-        @SuppressWarnings("deprecation")
         List<VariantContext> annotatedVariants =
-                org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.ContigChimericAlignmentIterativeInterpreter
+                ContigChimericAlignmentIterativeInterpreter
                         .discoverVariantsFromChimeras(svDiscoveryInputMetaData, parsedContigAlignments);
 
         final SAMSequenceDictionary refSeqDictionary = svDiscoveryInputMetaData.getReferenceData().getReferenceSequenceDictionaryBroadcast().getValue();
@@ -147,8 +148,8 @@ public final class DiscoverVariantsFromContigAlignmentsSAMSpark extends GATKSpar
     }
 
     private String getVcfOutputPath() {
-        if ( java.nio.file.Files.exists(Paths.get(prefixForOutput)) ) {
-            if (java.nio.file.Files.isDirectory(Paths.get(prefixForOutput))) // existing directory
+        if ( Files.exists(Paths.get(prefixForOutput)) ) {
+            if ( Files.isDirectory(Paths.get(prefixForOutput)) ) // existing directory
                 return prefixForOutput + (prefixForOutput.endsWith("/") ? "" : "/") + SVUtils.getSampleId(getHeaderForReads()) + "_inv_del_ins.vcf";
             else
                 throw new UserException("Provided prefix for output is pointing to an existing file: " + prefixForOutput); // to avoid accidental override of a file

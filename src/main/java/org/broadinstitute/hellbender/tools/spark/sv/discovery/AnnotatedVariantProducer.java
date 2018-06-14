@@ -3,7 +3,6 @@ package org.broadinstitute.hellbender.tools.spark.sv.discovery;
 import com.google.common.annotations.VisibleForTesting;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.StringUtil;
-import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.StructuralVariantType;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -11,7 +10,6 @@ import htsjdk.variant.vcf.VCFConstants;
 import org.apache.logging.log4j.Logger;
 import org.apache.spark.broadcast.Broadcast;
 import org.broadinstitute.hellbender.engine.datasources.ReferenceMultiSource;
-import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.AlignmentInterval;
 import org.broadinstitute.hellbender.tools.spark.sv.discovery.alignment.AssemblyContigWithFineTunedAlignments;
@@ -21,17 +19,14 @@ import org.broadinstitute.hellbender.tools.spark.sv.discovery.inference.SimpleNo
 import org.broadinstitute.hellbender.tools.spark.sv.evidence.EvidenceTargetLink;
 import org.broadinstitute.hellbender.tools.spark.sv.evidence.ReadMetadata;
 import org.broadinstitute.hellbender.tools.spark.sv.utils.*;
-import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.Utils;
 import scala.Tuple2;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection.DiscoverVariantsFromContigsAlignmentsSparkArgumentCollection;
-import static org.broadinstitute.hellbender.tools.spark.sv.StructuralVariationDiscoveryArgumentCollection.STRUCTURAL_VARIANT_SIZE_LOWER_BOUND;
 
 /**
  * Given identified pair of breakpoints for a simple SV and its supportive evidence, i.e. chimeric alignments,
@@ -66,11 +61,17 @@ public class AnnotatedVariantProducer implements Serializable {
 
         // manually remove inserted sequence information from RPL event-produced DEL, when it can be linked with an INS
         if (linkedVariants._1 instanceof SimpleSVType.Deletion)
-            return Arrays.asList(builder1.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE).rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH).rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE).make(),
+            return Arrays.asList(builder1.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE)
+                                         .rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH)
+                                         .rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE)
+                                         .make(),
                                  builder2.make());
         else if (linkedVariants._2 instanceof SimpleSVType.Deletion) {
             return Arrays.asList(builder1.make(),
-                                 builder2.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE).rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH).rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE).make());
+                                 builder2.rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE)
+                                         .rmAttribute(GATKSVVCFConstants.INSERTED_SEQUENCE_LENGTH)
+                                         .rmAttribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE)
+                                         .make());
         } else
             return Arrays.asList(builder1.make(), builder2.make());
     }
@@ -107,23 +108,26 @@ public class AnnotatedVariantProducer implements Serializable {
         // alt seq for non-BND variants, and if available or not empty
         final byte[] altHaplotypeSequence = novelAdjacencyAndAltHaplotype.getAltHaplotypeSequence();
         if (inferredType instanceof BreakEndVariantType) {
-            return annotateWithExternalCNVCalls(inferredType.getVariantCHR(), inferredType.getVariantPOS(), inferredType.getVariantEND(),
+            return annotateWithExternalCNVCalls(inferredType.getVariantChromosome(), inferredType.getVariantStart(), inferredType.getVariantStop(),
                     vcBuilder, broadcastSequenceDictionary, broadcastCNVCalls, sampleId);
         } else if (altHaplotypeSequence != null && altHaplotypeSequence.length != 0)
             vcBuilder.attribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE, StringUtil.bytesToString(altHaplotypeSequence));
 
-        return annotateWithExternalCNVCalls(inferredType.getVariantCHR(), inferredType.getVariantPOS(), inferredType.getVariantEND(),
+        return annotateWithExternalCNVCalls(inferredType.getVariantChromosome(), inferredType.getVariantStart(), inferredType.getVariantStop(),
                 vcBuilder, broadcastSequenceDictionary, broadcastCNVCalls, sampleId);
     }
 
     public static VariantContext produceAnnotatedVcFromEvidenceTargetLink(final EvidenceTargetLink evidenceTargetLink,
                                                                           final SvType svType) {
-        final int start = evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval().midpoint();
-        final int end = evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval().midpoint();
+        final PairedStrandedIntervals pairedStrandedIntervals = evidenceTargetLink.getPairedStrandedIntervals();
+        final StrandedInterval strandedIntervalLeft = pairedStrandedIntervals.getLeft();
+        final StrandedInterval strandedIntervalRight = pairedStrandedIntervals.getRight();
+        final int start = strandedIntervalLeft.getInterval().midpoint();
+        final int end = strandedIntervalRight.getInterval().midpoint();
         final VariantContextBuilder builder = svType
                 .getBasicInformation()
-                .attribute(GATKSVVCFConstants.CIPOS, produceCIInterval(start, evidenceTargetLink.getPairedStrandedIntervals().getLeft().getInterval()))
-                .attribute(GATKSVVCFConstants.CIEND, produceCIInterval(end, evidenceTargetLink.getPairedStrandedIntervals().getRight().getInterval()))
+                .attribute(GATKSVVCFConstants.CIPOS, produceCIInterval(start, strandedIntervalLeft.getInterval()))
+                .attribute(GATKSVVCFConstants.CIEND, produceCIInterval(end, strandedIntervalRight.getInterval()))
                 .attribute(GATKSVVCFConstants.READ_PAIR_SUPPORT, evidenceTargetLink.getReadPairs())
                 .attribute(GATKSVVCFConstants.SPLIT_READ_SUPPORT, evidenceTargetLink.getSplitReads());
         return builder.make();
@@ -215,7 +219,7 @@ public class AnnotatedVariantProducer implements Serializable {
                                                               final Broadcast<SAMSequenceDictionary> broadcastSequenceDictionary,
                                                               final Broadcast<SVIntervalTree<VariantContext>> broadcastCNVCalls,
                                                               final String sampleId) {
-        if (broadcastCNVCalls == null || end < 0)
+        if (broadcastCNVCalls == null)
             return inputBuilder;
         final SVInterval variantInterval = new SVInterval(broadcastSequenceDictionary.getValue().getSequenceIndex(recordContig), pos, end);
         final SVIntervalTree<VariantContext> cnvCallTree = broadcastCNVCalls.getValue();

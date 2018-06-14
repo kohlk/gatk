@@ -207,7 +207,6 @@ public abstract class SegmentedCpxVariantSimpleVariantExtractor implements Seria
                         .getContigsWithSignatureClassifiedAsComplex()
                         .map(AssemblyContigWithFineTunedAlignments::getSourceContig);
 
-        @SuppressWarnings("deprecation")
         List<VariantContext> pairIterationReInterpreted = ContigChimericAlignmentIterativeInterpreter
                 .discoverVariantsFromChimeras(svDiscoveryInputMetaData, analysisReadyContigs);
 
