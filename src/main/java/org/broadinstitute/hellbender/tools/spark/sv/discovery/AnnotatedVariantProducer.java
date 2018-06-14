@@ -107,10 +107,7 @@ public class AnnotatedVariantProducer implements Serializable {
 
         // alt seq for non-BND variants, and if available or not empty
         final byte[] altHaplotypeSequence = novelAdjacencyAndAltHaplotype.getAltHaplotypeSequence();
-        if (inferredType instanceof BreakEndVariantType) {
-            return annotateWithExternalCNVCalls(inferredType.getVariantChromosome(), inferredType.getVariantStart(), inferredType.getVariantStop(),
-                    vcBuilder, broadcastSequenceDictionary, broadcastCNVCalls, sampleId);
-        } else if (altHaplotypeSequence != null && altHaplotypeSequence.length != 0)
+        if (altHaplotypeSequence != null && altHaplotypeSequence.length != 0)
             vcBuilder.attribute(GATKSVVCFConstants.SEQ_ALT_HAPLOTYPE, StringUtil.bytesToString(altHaplotypeSequence));
 
         return annotateWithExternalCNVCalls(inferredType.getVariantChromosome(), inferredType.getVariantStart(), inferredType.getVariantStop(),

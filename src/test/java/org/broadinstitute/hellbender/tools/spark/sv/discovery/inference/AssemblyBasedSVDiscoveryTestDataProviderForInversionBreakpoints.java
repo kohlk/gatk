@@ -166,10 +166,10 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForInversionBreakpoints ext
         );
 
         final VariantContext expectedFirstMate = makeBND(new SimpleInterval("21:17069296-17069296"), new SimpleInterval("21:17069364-17069364"), Allele.create("A", true), "T", INV55, true, true, true)
-                .attribute(INV55, true).attribute(INSERTED_SEQUENCE, "T").attribute(INSERTED_SEQUENCE_LENGTH, 1).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 50).attribute(MAX_ALIGN_LENGTH, 50).attribute(CONTIG_NAMES, contigName)
+                .attribute(INV55, true).attribute(INSERTED_SEQUENCE, "T").attribute(INSERTED_SEQUENCE_LENGTH, 1).attribute(SEQ_ALT_HAPLOTYPE, "T").attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 50).attribute(MAX_ALIGN_LENGTH, 50).attribute(CONTIG_NAMES, contigName)
                 .make();
         final VariantContext expectedSecondMate = makeBND(new SimpleInterval("21:17069296-17069296"), new SimpleInterval("21:17069364-17069364"), Allele.create("G", true), "A", INV55, false, true, true)
-                .attribute(INV55, true).attribute(INSERTED_SEQUENCE, "T").attribute(INSERTED_SEQUENCE_LENGTH, 1).attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 50).attribute(MAX_ALIGN_LENGTH, 50).attribute(CONTIG_NAMES, contigName).make();
+                .attribute(INV55, true).attribute(INSERTED_SEQUENCE, "T").attribute(INSERTED_SEQUENCE_LENGTH, 1).attribute(SEQ_ALT_HAPLOTYPE, "T").attribute(TOTAL_MAPPINGS, 1).attribute(HQ_MAPPINGS, 1).attribute(MAPPING_QUALITIES, 60).attribute(ALIGN_LENGTHS, 50).attribute(MAX_ALIGN_LENGTH, 50).attribute(CONTIG_NAMES, contigName).make();
         final List<VariantContext> expectedVariants = Arrays.asList(
                 new VariantContextBuilder(expectedFirstMate).attribute(BND_MATEID_STR, expectedSecondMate.getID()).make(),
                 new VariantContextBuilder(expectedSecondMate).attribute(BND_MATEID_STR, expectedFirstMate.getID()).make()

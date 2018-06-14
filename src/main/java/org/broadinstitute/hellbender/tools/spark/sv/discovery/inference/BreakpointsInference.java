@@ -378,7 +378,17 @@ public abstract class BreakpointsInference {
                                               final byte[] contigSequence,
                                               final SAMSequenceDictionary referenceDictionary) {
             super(simpleChimera, contigSequence, referenceDictionary);
-            altHaplotypeSequence = new byte[]{};
+            resolveAltHaplotypeSequence(simpleChimera, contigSequence);
+        }
+
+        // override as appropriate
+        protected void resolveAltHaplotypeSequence(final SimpleChimera simpleChimera, final byte[] contigSeq) {
+            final String insertedSequenceForwardStrandRep = getComplications().insertedSequenceForwardStrandRep;
+            if( insertedSequenceForwardStrandRep.isEmpty() ) {
+                altHaplotypeSequence = new byte[0];
+            } else {
+                altHaplotypeSequence = insertedSequenceForwardStrandRep.getBytes();
+            }
         }
     }
 
@@ -453,14 +463,12 @@ public abstract class BreakpointsInference {
             upstreamBreakpointRefPos = complications.getDupSeqRepeatUnitRefSpan().getStart() - 1;
             downstreamBreakpointRefPos = complications.getDupSeqRepeatUnitRefSpan().getEnd();
 
-            altHaplotypeSequence = extractAltHaplotypeForInvDup(simpleChimera, contigSequence);
-
             validateInferredLocations(new SimpleInterval(upstreamBreakpointRefContig, upstreamBreakpointRefPos, upstreamBreakpointRefPos),
                     new SimpleInterval(downstreamBreakpointRefContig, downstreamBreakpointRefPos, downstreamBreakpointRefPos),
                     referenceDictionary, toString());
         }
 
-        private static byte[] extractAltHaplotypeForInvDup(final SimpleChimera simpleChimera, final byte[] contigSeq) {
+        protected void resolveAltHaplotypeSequence(final SimpleChimera simpleChimera, final byte[] contigSeq) {
 
             final AlignmentInterval firstAlignmentInterval  = simpleChimera.regionWithLowerCoordOnContig;
             final AlignmentInterval secondAlignmentInterval = simpleChimera.regionWithHigherCoordOnContig;
@@ -514,9 +522,8 @@ public abstract class BreakpointsInference {
                 }
             }
 
-            final byte[] seq = Arrays.copyOfRange(contigSeq, start, end);
-            if (needRC) SequenceUtil.reverseComplement(seq, 0, seq.length);
-            return seq;
+            altHaplotypeSequence = Arrays.copyOfRange(contigSeq, start, end);
+            if (needRC) SequenceUtil.reverseComplement(altHaplotypeSequence, 0, altHaplotypeSequence.length);
         }
     }
 

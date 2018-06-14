@@ -122,7 +122,8 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
 
     private static VariantContextBuilder addStandardAttributes(final VariantContextBuilder inputBuilder, final String contigName,
                                                                final int mapQ, final int alignLength,
-                                                               final String homSeq, final String insSeq, final String mateID) {
+                                                               final String homSeq, final String insSeq, final String altSeq,
+                                                               final String mateID) {
         VariantContextBuilder builder = inputBuilder
                 .attribute(TOTAL_MAPPINGS, 1)
                 .attribute(CONTIG_NAMES, contigName)
@@ -134,6 +135,9 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
         }
         if (!insSeq.isEmpty()) {
             builder.attribute(INSERTED_SEQUENCE, insSeq).attribute(INSERTED_SEQUENCE_LENGTH, insSeq.length());
+        }
+        if (!altSeq.isEmpty()) {
+            builder.attribute(SEQ_ALT_HAPLOTYPE, altSeq);
         }
         return builder;
     }
@@ -157,8 +161,8 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
         );
 
         final List<VariantContext> expectedVariants = Arrays.asList(
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("A", true), "", "", true, false, true), contigName, 60, 119, homology, "", "BND_chr20_28838813_29189401_2").make(),
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("G", true), "", "", false, true, false), contigName, 60, 119, homology, "", "BND_chr20_28838813_29189401_1").make()
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("A", true), "", "", true, false, true), contigName, 60, 119, homology, "", "", "BND_chr20_28838813_29189401_2").make(),
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("G", true), "", "", false, true, false), contigName, 60, 119, homology, "", "", "BND_chr20_28838813_29189401_1").make()
         );
 
         final TestDataBreakEndVariants forIntraChromosomeRefOrderSwapWithHomology_plus =
@@ -186,14 +190,14 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
         SimpleInterval expectedLeftBreakpoint = new SimpleInterval("chr20:44404789-44404789");
         SimpleInterval expectedRightBreakpoint = new SimpleInterval("chr20:44405064-44405064");
         final BreakpointComplications expectedBreakpointComplications = new BreakpointComplications.IntraChrRefOrderSwapBreakpointComplications("", insSeq);
-        NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltSeq = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, StrandSwitch.NO_SWITCH, expectedBreakpointComplications, TypeInferredFromSimpleChimera.INTRA_CHR_REF_ORDER_SWAP, EMPTY_BYTE_ARRAY);
+        NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltSeq = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, StrandSwitch.NO_SWITCH, expectedBreakpointComplications, TypeInferredFromSimpleChimera.INTRA_CHR_REF_ORDER_SWAP, insSeq.getBytes());
         final List<SvType> expectedSVTypes = Arrays.asList(
                 makeBNDType("chr20", 44404789, "BND_chr20_44404789_44405064_1", Allele.create("G", true), Allele.create("]chr20:44405064]"+insSeq+"G"), Collections.emptyMap(), true, BreakEndVariantType.SupportedType.INTRA_CHR_REF_ORDER_SWAP),
                 makeBNDType("chr20", 44405064, "BND_chr20_44404789_44405064_2", Allele.create("G", true), Allele.create("G"+insSeq+"[chr20:44404789["), Collections.emptyMap(), false, BreakEndVariantType.SupportedType.INTRA_CHR_REF_ORDER_SWAP)
         );
         final List<VariantContext> expectedVariants = Arrays.asList(
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("G", true), insSeq, "", true, false, true), contigName, 32, 62, "", insSeq, "BND_chr20_44404789_44405064_2").make(),
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("G", true), insSeq, "", false, true, false), contigName, 32, 62, "", insSeq, "BND_chr20_44404789_44405064_1").make()
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("G", true), insSeq, "", true, false, true), contigName, 32, 62, "", insSeq, insSeq, "BND_chr20_44404789_44405064_2").make(),
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("G", true), insSeq, "", false, true, false), contigName, 32, 62, "", insSeq, insSeq, "BND_chr20_44404789_44405064_1").make()
         );
 
         final TestDataBreakEndVariants forIntraChromosomeRefOrderSwapWithInsertion_plus =
@@ -227,8 +231,8 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
                 makeBNDType("chr21", 7969682, "BND_chr20_28766709_chr21_7969682_2", Allele.create("T", true), Allele.create("]chr20:28766709]T"), Collections.emptyMap(), false, BreakEndVariantType.SupportedType.INTER_CHR_NO_SS_WITH_LEFT_MATE_FIRST_IN_PARTNER)
         );
         List<VariantContext> expectedVariants = Arrays.asList(
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("C", true), "", "", true, true, false), contigName, 58, 166, homology, "", "BND_chr20_28766709_chr21_7969682_2").make(),
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("T", true), "", "", false, false, true), contigName, 58, 166, homology, "", "BND_chr20_28766709_chr21_7969682_1").make()
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("C", true), "", "", true, true, false), contigName, 58, 166, homology, "", "", "BND_chr20_28766709_chr21_7969682_2").make(),
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("T", true), "", "", false, false, true), contigName, 58, 166, homology, "", "", "BND_chr20_28766709_chr21_7969682_1").make()
         );
 
         final TestDataBreakEndVariants forInterChromosomeNoStrandSwitchAndUpstreamLocIsFirstInPartner_plus =
@@ -240,8 +244,8 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
         secondAlignment = new AlignmentInterval(new SimpleInterval("chr20:28766185-28766865"), 239, 919, TextCigarCodec.decode("238S681M"), false, 58, 7, 646, ContigAlignmentsModifier.AlnModType.NONE);
         simpleChimera = new SimpleChimera(contigName, firstAlignment, secondAlignment, StrandSwitch.NO_SWITCH, false, Collections.emptyList(), NO_GOOD_MAPPING_TO_NON_CANONICAL_CHROMOSOME);
         expectedVariants = Arrays.asList(
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("C", true), "", "", true, true, false), contigName, 58, 237, homology, "", "BND_chr20_28766709_chr21_7969682_2").make(),
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("T", true), "", "", false, false, true), contigName, 58, 237, homology, "", "BND_chr20_28766709_chr21_7969682_1").make()
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("C", true), "", "", true, true, false), contigName, 58, 237, homology, "", "", "BND_chr20_28766709_chr21_7969682_2").make(),
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("T", true), "", "", false, false, true), contigName, 58, 237, homology, "", "", "BND_chr20_28766709_chr21_7969682_1").make()
         );
         final TestDataBreakEndVariants forInterChromosomeNoStrandSwitchAndUpstreamLocIsFirstInPartner_minus =
                 new TestDataBreakEndVariants(firstAlignment, secondAlignment, contigName, contigSequence, true, simpleChimera, expectedNovelAdjacencyAndAltSeq, expectedSVTypes, expectedVariants, BreakpointsInference.InterChromosomeBreakpointsInference.class);
@@ -261,14 +265,14 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
         SimpleInterval expectedLeftBreakpoint = new SimpleInterval("chr20:29286550-29286550");
         SimpleInterval expectedRightBreakpoint = new SimpleInterval("chr21:10806721-10806721");
         final BreakpointComplications expectedBreakpointComplications = new BreakpointComplications.InterChromosomeBreakpointComplications(homology, insSeq);
-        NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltSeq = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, StrandSwitch.NO_SWITCH, expectedBreakpointComplications, TypeInferredFromSimpleChimera.INTER_CHR_NO_SS_WITH_LEFT_MATE_SECOND_IN_PARTNER, EMPTY_BYTE_ARRAY);
+        NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltSeq = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, StrandSwitch.NO_SWITCH, expectedBreakpointComplications, TypeInferredFromSimpleChimera.INTER_CHR_NO_SS_WITH_LEFT_MATE_SECOND_IN_PARTNER, insSeq.getBytes());
         List<SvType> expectedSVTypes = Arrays.asList(
                 makeBNDType("chr20", 29286550, "BND_chr20_29286550_chr21_10806721_1", Allele.create("T", true), Allele.create("]chr21:10806721]"+insSeq+"T"), Collections.emptyMap(), true, BreakEndVariantType.SupportedType.INTER_CHR_NO_SS_WITH_LEFT_MATE_SECOND_IN_PARTNER),
                 makeBNDType("chr21", 10806721, "BND_chr20_29286550_chr21_10806721_2", Allele.create("G", true), Allele.create("G"+insSeq+"[chr20:29286550["), Collections.emptyMap(), false, BreakEndVariantType.SupportedType.INTER_CHR_NO_SS_WITH_LEFT_MATE_SECOND_IN_PARTNER)
         );
         List<VariantContext> expectedVariants = Arrays.asList(
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("T", true), insSeq, "", true, false, true), contigName, 22, 152, homology, insSeq, "BND_chr20_29286550_chr21_10806721_2").make(),
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("G", true), insSeq, "", false, true, false), contigName, 22, 152, homology, insSeq, "BND_chr20_29286550_chr21_10806721_1").make()
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("T", true), insSeq, "", true, false, true), contigName, 22, 152, homology, insSeq, insSeq, "BND_chr20_29286550_chr21_10806721_2").make(),
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("G", true), insSeq, "", false, true, false), contigName, 22, 152, homology, insSeq, insSeq, "BND_chr20_29286550_chr21_10806721_1").make()
         );
 
         final TestDataBreakEndVariants forInterChromosomeNoStrandSwitchAndUpstreamLocIsSecondInPartner_plus =
@@ -296,14 +300,14 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
         SimpleInterval expectedLeftBreakpoint = new SimpleInterval("chr20:28817977-28817977");
         SimpleInterval expectedRightBreakpoint = new SimpleInterval("chr21:10784829-10784829");
         final BreakpointComplications expectedBreakpointComplications = new BreakpointComplications.InterChromosomeBreakpointComplications(homology, insSeq);
-        NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltSeq = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, StrandSwitch.FORWARD_TO_REVERSE, expectedBreakpointComplications, TypeInferredFromSimpleChimera.INTER_CHR_STRAND_SWITCH_55, EMPTY_BYTE_ARRAY);
+        NovelAdjacencyAndAltHaplotype expectedNovelAdjacencyAndAltSeq = new NovelAdjacencyAndAltHaplotype(expectedLeftBreakpoint, expectedRightBreakpoint, StrandSwitch.FORWARD_TO_REVERSE, expectedBreakpointComplications, TypeInferredFromSimpleChimera.INTER_CHR_STRAND_SWITCH_55, insSeq.getBytes());
         final List<SvType> expectedSVTypes = Arrays.asList(
                 makeBNDType("chr20", 28817977, "BND_chr20_28817977_chr21_10784829_1", Allele.create("A", true), Allele.create("A"+insSeq+"]chr21:10784829]"), Collections.emptyMap(), true, BreakEndVariantType.SupportedType.INTER_CHR_STRAND_SWITCH_55),
                 makeBNDType("chr21", 10784829, "BND_chr20_28817977_chr21_10784829_2", Allele.create("T", true), Allele.create("T"+ SequenceUtil.reverseComplement(insSeq) +"]chr20:28817977]"), Collections.emptyMap(), false, BreakEndVariantType.SupportedType.INTER_CHR_STRAND_SWITCH_55)
         );
         final List<VariantContext> expectedVariants = Arrays.asList(
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("A", true), insSeq, "", true, true, true), contigName, 60, 216, homology, insSeq, "BND_chr20_28817977_chr21_10784829_2").make(),
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("T", true), SequenceUtil.reverseComplement(insSeq), "", false, true, true), contigName, 60, 216, homology, insSeq, "BND_chr20_28817977_chr21_10784829_1").make()
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("A", true), insSeq, "", true, true, true), contigName, 60, 216, homology, insSeq, insSeq, "BND_chr20_28817977_chr21_10784829_2").make(),
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("T", true), SequenceUtil.reverseComplement(insSeq), "", false, true, true), contigName, 60, 216, homology, insSeq, insSeq, "BND_chr20_28817977_chr21_10784829_1").make()
         );
 
         final TestDataBreakEndVariants forInterChromosomeStrandSwitch55_plus =
@@ -338,8 +342,8 @@ public class AssemblyBasedSVDiscoveryTestDataProviderForBreakEndVariants extends
                 makeBNDType("chr21", 7229448, "BND_chr20_29204769_chr21_7229448_2", Allele.create("A", true), Allele.create("[chr20:29204769[A"), Collections.emptyMap(), false, BreakEndVariantType.SupportedType.INTER_CHR_STRAND_SWITCH_33)
         );
         final List<VariantContext> expectedVariants = Arrays.asList(
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("A", true), insSeq, "", true, false, false), contigName, 25, 260, homology, insSeq, "BND_chr20_29204769_chr21_7229448_2").make(),
-                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("A", true), insSeq, "", false, false, false), contigName, 25, 260, homology, insSeq, "BND_chr20_29204769_chr21_7229448_1").make()
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("A", true), insSeq, "", true, false, false), contigName, 25, 260, homology, insSeq, insSeq, "BND_chr20_29204769_chr21_7229448_2").make(),
+                addStandardAttributes(makeBND(expectedLeftBreakpoint, expectedRightBreakpoint, Allele.create("A", true), insSeq, "", false, false, false), contigName, 25, 260, homology, insSeq, insSeq, "BND_chr20_29204769_chr21_7229448_1").make()
         );
 
         final TestDataBreakEndVariants forInterChromosomeStrandSwitch33_plus =

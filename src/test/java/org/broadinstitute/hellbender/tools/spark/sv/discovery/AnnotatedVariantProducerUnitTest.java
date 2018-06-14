@@ -34,7 +34,6 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import scala.Tuple2;
 
-import java.io.IOException;
 import java.util.*;
 
 import static org.broadinstitute.hellbender.tools.spark.sv.discovery.AnnotatedVariantProducer.produceAnnotatedVcFromAssemblyEvidence;
