@@ -11,6 +11,8 @@ import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.barclay.help.DocumentedFeature;
 import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
 import org.broadinstitute.hellbender.engine.*;
+import org.broadinstitute.hellbender.engine.filters.CountingReadFilter;
+import org.broadinstitute.hellbender.engine.filters.VariantFilter;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.exceptions.UserException;
 import org.broadinstitute.hellbender.tools.funcotator.dataSources.DataSourceUtils;
@@ -31,6 +33,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Funcotator (FUNCtional annOTATOR) analyzes given variants for their function (as retrieved from a set of data sources) and produces the analysis in a specified output file.
@@ -392,6 +395,38 @@ public class Funcotator extends VariantWalker {
         }
     }
 
+    private SimpleInterval getCorrectContigNameForB37OrHg19(final VariantContext variant ) {
+        // Check to see if we need to query with a different reference convention (i.e. "chr1" vs "1").
+        if (allowHg19ContigNamesWithB37 && (inputReferenceIsB37 || allowHg19ContigNamesWithB37Lenient)) {
+
+            // Construct a new contig and new interval with no "chr" in front of it:
+            return new SimpleInterval( FuncotatorUtils.convertB37ContigToHg19Contig( variant.getContig() ),
+                                        variant.getStart(),
+                                        variant.getEnd());
+        }
+        return new SimpleInterval(variant);
+    }
+
+    @Override
+    public void traverse() {
+        final VariantFilter      variantfilter = makeVariantFilter();
+        final CountingReadFilter readFilter    = makeReadFilter();
+        // Process each variant in the input stream.
+        StreamSupport.stream(getSpliteratorForDrivingVariants(), false)
+                .filter(variantfilter)
+                .forEach(variant -> {
+                    // We need to translate the contig here if our variant is B37 and we've been given the
+                    // flag to do the translation to HG19:
+                    final SimpleInterval variantInterval = getCorrectContigNameForB37OrHg19(variant);
+                    apply(variant,
+                            new ReadsContext(reads, variantInterval, readFilter),
+                            new ReferenceContext(reference, variantInterval),
+                            new FeatureContext(features, variantInterval));
+
+                    progressMeter.update(variantInterval);
+                });
+    }
+
     @Override
     public void apply(final VariantContext variant, final ReadsContext readsContext, final ReferenceContext referenceContext, final FeatureContext featureContext) {
 
@@ -448,6 +483,8 @@ public class Funcotator extends VariantWalker {
         return outAnnotations;
     }
 
+    int numCycles = 0;
+
     /**
      * Creates an annotation on the given {@code variant} or enqueues it to be processed during a later call to this method.
      * @param variant {@link VariantContext} to annotate.
@@ -465,32 +502,10 @@ public class Funcotator extends VariantWalker {
         // Get our feature inputs:
         final Map<String, List<Feature>> featureSourceMap = new HashMap<>();
 
-        // Check to see if we need to query with a different reference convention (i.e. "chr1" vs "1").
-        if (allowHg19ContigNamesWithB37 && (inputReferenceIsB37 || allowHg19ContigNamesWithB37Lenient)) {
-
-            // Construct a new contig and new interval with no "chr" in front of it:
-            final String hg19Contig = FuncotatorUtils.convertB37ContigToHg19Contig( variant.getContig() );
-            final SimpleInterval hg19Interval = new SimpleInterval(hg19Contig, variant.getStart(), variant.getEnd());
-
-            // Get our features for the new interval:
-            for ( final FeatureInput<? extends Feature> featureInput : manualLocatableFeatureInputs ) {
-                @SuppressWarnings("unchecked")
-                final List<Feature> featureList = (List<Feature>)featureContext.getValues(featureInput, hg19Interval);
-
-                // If we found features without relaxing the criteria, we should not continue to query.
-                if (featureList.size() == 0) {
-                    // TODO: This is a little sloppy, since it checks every datasource twice.  Once for hg19 contig names and once for b37 contig names.  See https://github.com/broadinstitute/gatk/issues/4798
-                    featureList.addAll(featureContext.getValues(featureInput));
-                }
-                featureSourceMap.put( featureInput.getName(), featureList);
-            }
-        }
-        else {
-            for ( final FeatureInput<? extends Feature> featureInput : manualLocatableFeatureInputs ) {
-                @SuppressWarnings("unchecked")
-                final List<Feature> featureList = (List<Feature>)featureContext.getValues(featureInput);
-                featureSourceMap.put( featureInput.getName(), featureList );
-            }
+        for ( final FeatureInput<? extends Feature> featureInput : manualLocatableFeatureInputs ) {
+            @SuppressWarnings("unchecked")
+            final List<Feature> featureList = (List<Feature>)featureContext.getValues(featureInput);
+            featureSourceMap.put( featureInput.getName(), featureList );
         }
 
         // Create only the gencode funcotations.
@@ -521,6 +536,8 @@ public class Funcotator extends VariantWalker {
 
         // At this point there is only one transcript ID in the funcotation map if canonical or best effect are selected
         outputRenderer.write(variant, funcotationMap);
+
+        ++numCycles;
     }
 
     private Stream<DataSourceFuncotationFactory> retrieveGencodeFuncotationFactoryStream() {

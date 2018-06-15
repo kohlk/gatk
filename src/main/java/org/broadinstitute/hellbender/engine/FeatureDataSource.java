@@ -608,4 +608,8 @@ public final class FeatureDataSource<T extends Feature> implements GATKDataSourc
             currentIterator = null;
         }
     }
+
+    public void printCacheStatistics() {
+        queryCache.printCacheStatistics(getName());
+    }
 }

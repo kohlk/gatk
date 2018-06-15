@@ -222,12 +222,20 @@ class FeatureCache<CACHED_FEATURE extends Feature> {
         return matchingFeatures;
     }
 
+    public void printCacheStatistics() {
+        printCacheStatistics("");
+    }
+
     /**
      * Print statistics about the cache hit rate for debugging
      */
-    public void printCacheStatistics() {
+    public void printCacheStatistics(final String sourceName) {
+
+        final String sourceNameString = sourceName.isEmpty() ? "" : "for data source " + sourceName + " ";
+
         final int totalQueries = getNumCacheHits() + getNumCacheMisses();
-        logger.debug(String.format("Cache hit rate was %.2f%% (%d out of %d total queries)",
+        logger.info(String.format("Cache hit rate %swas %.2f%% (%d out of %d total queries)",
+                sourceNameString,
                 totalQueries > 0 ? ((double)getNumCacheHits() / totalQueries) * 100.0 : 0.0,
                 getNumCacheHits(),
                 totalQueries));

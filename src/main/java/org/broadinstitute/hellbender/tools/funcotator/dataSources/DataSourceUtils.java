@@ -230,9 +230,9 @@ final public class DataSourceUtils {
      * @return A {@link List} of {@link DataSourceFuncotationFactory} given the data source metadata, overrides, and transcript reporting priority information.
      */
     public static List<DataSourceFuncotationFactory> createDataSourceFuncotationFactoriesForDataSources(final Map<Path, Properties> dataSourceMetaData,
-                                                                                               final LinkedHashMap<String, String> annotationOverridesMap,
-                                                                                               final TranscriptSelectionMode transcriptSelectionMode,
-                                                                                               final Set<String> userTranscriptIdSet,
+                                                                                                        final LinkedHashMap<String, String> annotationOverridesMap,
+                                                                                                        final TranscriptSelectionMode transcriptSelectionMode,
+                                                                                                        final Set<String> userTranscriptIdSet,
                                                                                                         final boolean isAllowingNoChrMatchesForTranscripts) {
 
         Utils.nonNull(dataSourceMetaData);
