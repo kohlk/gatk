@@ -217,11 +217,11 @@ public class FilterVariantTranches extends TwoPassVariantWalker {
     }
 
     private String filterStringFromScore(double score, List<Double> cutoffs){
-        for (int i = 0; i < cutoffs.size()-1; i++){
+        for (int i = 0; i < cutoffs.size(); i++){
             if (score > cutoffs.get(i) && i == 0){
                 throw new GATKException("Trying to add a filter to a passing variant.");
             } else if (score > cutoffs.get(i)){
-                return filterKeyFromTranches(infoKey, tranches.get(i), tranches.get(i+1));
+                return filterKeyFromTranches(infoKey, tranches.get(i-1), tranches.get(i));
             }
         }
         return filterKeyFromTranches(infoKey, tranches.get(tranches.size()-1), 100.0);
